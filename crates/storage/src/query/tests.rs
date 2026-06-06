@@ -3,10 +3,11 @@ use sqlx::{Execute, Postgres, QueryBuilder};
 use crate::{
     filters::{AccountFilter, DomainFilter},
     query::{
-        push_account_filters, push_account_relation_filter, push_domain_relation_filter,
-        push_i32_array_filter, push_numeric_element_filter, push_numeric_text_array_filter,
-        push_numeric_text_filter, push_text_element_filter, push_text_filter,
-        push_text_not_contains_filter, push_text_not_prefix_filter, push_text_prefix_nocase_filter,
+        push_account_filters, push_account_relation_filter, push_domain_filter_group,
+        push_domain_relation_filter, push_i32_array_filter, push_numeric_element_filter,
+        push_numeric_text_array_filter, push_numeric_text_filter, push_text_element_filter,
+        push_text_filter, push_text_not_contains_filter, push_text_not_prefix_filter,
+        push_text_prefix_nocase_filter,
     },
 };
 
@@ -148,6 +149,73 @@ fn account_relation_filter_supports_boolean_composition() {
     assert_eq!(
         built.sql(),
         "select id from domains where owner_id in (select id from accounts where ((id = any($1)))) "
+    );
+}
+
+#[test]
+fn domain_filter_supports_boolean_composition() {
+    let mut query = QueryBuilder::<Postgres>::new("select id from domains");
+    {
+        let mut separated = query.separated(" and ");
+        let mut has_where = false;
+        push_domain_filter_group(
+            &mut separated,
+            &mut has_where,
+            " or ",
+            Some(vec![
+                DomainFilter {
+                    name_contains_nocase: Some("foo".into()),
+                    is_migrated: Some(true),
+                    ..DomainFilter::default()
+                },
+                DomainFilter {
+                    labelhash_not: Some("0x00".into()),
+                    ttl_gte: Some("100".into()),
+                    ..DomainFilter::default()
+                },
+            ]),
+        );
+        separated.push_unseparated(" ");
+    }
+
+    let built = query.build();
+    assert_eq!(
+        built.sql(),
+        "select id from domains where (id in (select id from domains where lower(name) like lower($1) and is_migrated = $2) or id in (select id from domains where labelhash != $3 and ttl >= $4::numeric)) "
+    );
+}
+
+#[test]
+fn domain_relation_filter_supports_boolean_composition() {
+    let mut query = QueryBuilder::<Postgres>::new("select id from registrations");
+    {
+        let mut separated = query.separated(" and ");
+        let mut has_where = false;
+        push_domain_relation_filter(
+            &mut separated,
+            &mut has_where,
+            "domain_id",
+            Some(Box::new(DomainFilter {
+                and: Some(vec![
+                    DomainFilter {
+                        name_starts_with: Some("vitalik".into()),
+                        ..DomainFilter::default()
+                    },
+                    DomainFilter {
+                        expiry_date_gt: Some("1000".into()),
+                        ..DomainFilter::default()
+                    },
+                ]),
+                ..DomainFilter::default()
+            })),
+        );
+        separated.push_unseparated(" ");
+    }
+
+    let built = query.build();
+    assert_eq!(
+        built.sql(),
+        "select id from registrations where domain_id in (select id from domains where (id in (select id from domains where name like $1) and id in (select id from domains where expiry_date > $2::numeric))) "
     );
 }
 

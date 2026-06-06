@@ -82,6 +82,14 @@ pub(super) fn domain_filter_has_scalar_conditions(filter: &DomainFilter) -> bool
         || filter.ttl_lt.is_some()
         || filter.ttl_gte.is_some()
         || filter.ttl_lte.is_some()
+        || filter
+            .and
+            .as_ref()
+            .is_some_and(|filters| filters.iter().any(domain_filter_has_scalar_conditions))
+        || filter
+            .or
+            .as_ref()
+            .is_some_and(|filters| filters.iter().any(domain_filter_has_scalar_conditions))
 }
 
 pub(super) fn resolver_filter_has_scalar_conditions(filter: &ResolverFilter) -> bool {

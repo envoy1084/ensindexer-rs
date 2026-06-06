@@ -24,6 +24,8 @@ use self::{
     resolver::push_resolver_scalar_filter_conditions,
 };
 
+pub(crate) use domain::push_domain_filter_group;
+
 pub(crate) fn push_account_relation_filter<'qb>(
     separated: &mut Separated<'qb, Postgres, &'static str>,
     has_where: &mut bool,

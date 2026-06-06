@@ -222,4 +222,6 @@ pub struct DomainFilter {
     pub ttl_lte: Option<String>,
     pub ttl_in: Option<Vec<String>>,
     pub ttl_not_in: Option<Vec<String>>,
+    pub and: Option<Vec<DomainFilter>>,
+    pub or: Option<Vec<DomainFilter>>,
 }

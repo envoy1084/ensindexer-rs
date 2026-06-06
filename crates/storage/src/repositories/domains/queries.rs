@@ -336,6 +336,8 @@ impl DomainsRepo<'_> {
             filter.ttl_not_in.take(),
             true,
         );
+        push_domain_filter_group(&mut separated, &mut has_where, " and ", filter.and.take());
+        push_domain_filter_group(&mut separated, &mut has_where, " or ", filter.or.take());
 
         if has_where {
             separated.push_unseparated(" ");

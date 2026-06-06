@@ -1,6 +1,10 @@
 use sqlx::{Postgres, query_builder::Separated};
 
-use crate::{filters::DomainFilter, query::relations::subquery::*};
+use crate::{
+    filters::DomainFilter,
+    query::relations::subquery::*,
+    query::{push_where_prefix, relations::conditions::domain_filter_has_scalar_conditions},
+};
 
 pub(super) fn push_domain_scalar_filter_conditions<'qb>(
     separated: &mut Separated<'qb, Postgres, &'static str>,
@@ -205,4 +209,68 @@ pub(super) fn push_domain_scalar_filter_conditions<'qb>(
     push_sub_numeric_text_filter(separated, has_where, "ttl", "<", filter.ttl_lt);
     push_sub_numeric_text_filter(separated, has_where, "ttl", ">=", filter.ttl_gte);
     push_sub_numeric_text_filter(separated, has_where, "ttl", "<=", filter.ttl_lte);
+    push_sub_domain_filter_group(separated, has_where, " and ", filter.and);
+    push_sub_domain_filter_group(separated, has_where, " or ", filter.or);
+}
+
+pub(crate) fn push_domain_filter_group<'qb>(
+    separated: &mut Separated<'qb, Postgres, &'static str>,
+    has_where: &mut bool,
+    joiner: &'static str,
+    filters: Option<Vec<DomainFilter>>,
+) {
+    let Some(filters) = filters else {
+        return;
+    };
+    let filters: Vec<_> = filters
+        .into_iter()
+        .filter(domain_filter_has_scalar_conditions)
+        .collect();
+    if filters.is_empty() {
+        return;
+    }
+
+    push_where_prefix(separated, has_where);
+    separated.push("(");
+    append_domain_filter_subqueries(separated, joiner, filters);
+    separated.push_unseparated(")");
+}
+
+fn push_sub_domain_filter_group<'qb>(
+    separated: &mut Separated<'qb, Postgres, &'static str>,
+    has_where: &mut bool,
+    joiner: &'static str,
+    filters: Option<Vec<DomainFilter>>,
+) {
+    let Some(filters) = filters else {
+        return;
+    };
+    let filters: Vec<_> = filters
+        .into_iter()
+        .filter(domain_filter_has_scalar_conditions)
+        .collect();
+    if filters.is_empty() {
+        return;
+    }
+
+    push_sub_where_prefix(separated, has_where);
+    separated.push_unseparated("(");
+    append_domain_filter_subqueries(separated, joiner, filters);
+    separated.push_unseparated(")");
+}
+
+fn append_domain_filter_subqueries<'qb>(
+    separated: &mut Separated<'qb, Postgres, &'static str>,
+    joiner: &'static str,
+    filters: Vec<DomainFilter>,
+) {
+    for (index, filter) in filters.into_iter().enumerate() {
+        if index > 0 {
+            separated.push_unseparated(joiner);
+        }
+        separated.push_unseparated("id in (select id from domains");
+        let mut sub_has_where = false;
+        push_domain_scalar_filter_conditions(separated, &mut sub_has_where, filter);
+        separated.push_unseparated(")");
+    }
 }
