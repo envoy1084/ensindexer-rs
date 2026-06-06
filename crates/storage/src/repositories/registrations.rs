@@ -114,118 +114,32 @@ impl RegistrationsRepo<'_> {
             "registrant_id",
             filter.registrant_filter,
         );
-        push_text_filter(
+        push_text_field_filters(
             &mut separated,
             &mut has_where,
             "label_name",
-            filter.label_name,
-        );
-        push_text_not_filter(
-            &mut separated,
-            &mut has_where,
-            "label_name",
-            filter.label_name_not,
-        );
-        push_text_comparison_filters(
-            &mut separated,
-            &mut has_where,
-            "label_name",
-            filter.label_name_gt,
-            filter.label_name_lt,
-            filter.label_name_gte,
-            filter.label_name_lte,
-        );
-        push_text_array_filter(
-            &mut separated,
-            &mut has_where,
-            "label_name",
-            filter.label_name_in,
-        );
-        push_text_not_array_filter(
-            &mut separated,
-            &mut has_where,
-            "label_name",
-            filter.label_name_not_in,
-        );
-        push_text_contains_filter(
-            &mut separated,
-            &mut has_where,
-            "label_name",
-            filter.label_name_contains,
-            false,
-        );
-        push_text_contains_filter(
-            &mut separated,
-            &mut has_where,
-            "label_name",
-            filter.label_name_contains_nocase,
-            true,
-        );
-        push_text_not_contains_filter(
-            &mut separated,
-            &mut has_where,
-            "label_name",
-            filter.label_name_not_contains,
-            false,
-        );
-        push_text_not_contains_filter(
-            &mut separated,
-            &mut has_where,
-            "label_name",
-            filter.label_name_not_contains_nocase,
-            true,
-        );
-        push_text_prefix_filter(
-            &mut separated,
-            &mut has_where,
-            "label_name",
-            filter.label_name_starts_with,
-        );
-        push_text_prefix_nocase_filter(
-            &mut separated,
-            &mut has_where,
-            "label_name",
-            filter.label_name_starts_with_nocase,
-        );
-        push_text_not_prefix_filter(
-            &mut separated,
-            &mut has_where,
-            "label_name",
-            filter.label_name_not_starts_with,
-            false,
-        );
-        push_text_not_prefix_filter(
-            &mut separated,
-            &mut has_where,
-            "label_name",
-            filter.label_name_not_starts_with_nocase,
-            true,
-        );
-        push_text_suffix_filter(
-            &mut separated,
-            &mut has_where,
-            "label_name",
-            filter.label_name_ends_with,
-        );
-        push_text_suffix_nocase_filter(
-            &mut separated,
-            &mut has_where,
-            "label_name",
-            filter.label_name_ends_with_nocase,
-        );
-        push_text_not_suffix_filter(
-            &mut separated,
-            &mut has_where,
-            "label_name",
-            filter.label_name_not_ends_with,
-            false,
-        );
-        push_text_not_suffix_filter(
-            &mut separated,
-            &mut has_where,
-            "label_name",
-            filter.label_name_not_ends_with_nocase,
-            true,
+            TextFieldFilter {
+                exact: filter.label_name,
+                not: filter.label_name_not,
+                gt: filter.label_name_gt,
+                lt: filter.label_name_lt,
+                gte: filter.label_name_gte,
+                lte: filter.label_name_lte,
+                in_values: filter.label_name_in,
+                not_in: filter.label_name_not_in,
+                contains: filter.label_name_contains,
+                contains_nocase: filter.label_name_contains_nocase,
+                not_contains: filter.label_name_not_contains,
+                not_contains_nocase: filter.label_name_not_contains_nocase,
+                starts_with: filter.label_name_starts_with,
+                starts_with_nocase: filter.label_name_starts_with_nocase,
+                not_starts_with: filter.label_name_not_starts_with,
+                not_starts_with_nocase: filter.label_name_not_starts_with_nocase,
+                ends_with: filter.label_name_ends_with,
+                ends_with_nocase: filter.label_name_ends_with_nocase,
+                not_ends_with: filter.label_name_not_ends_with,
+                not_ends_with_nocase: filter.label_name_not_ends_with_nocase,
+            },
         );
         push_numeric_text_filter(
             &mut separated,

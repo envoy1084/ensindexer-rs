@@ -1,0 +1,78 @@
+use sqlx::{Postgres, query_builder::Separated};
+
+use super::{
+    push_text_array_filter, push_text_comparison_filters, push_text_contains_filter,
+    push_text_filter, push_text_not_array_filter, push_text_not_contains_filter,
+    push_text_not_filter, push_text_not_prefix_filter, push_text_not_suffix_filter,
+    push_text_prefix_filter, push_text_prefix_nocase_filter, push_text_suffix_filter,
+    push_text_suffix_nocase_filter,
+};
+
+#[derive(Debug, Clone, Default)]
+pub(crate) struct TextFieldFilter {
+    pub exact: Option<String>,
+    pub not: Option<String>,
+    pub gt: Option<String>,
+    pub lt: Option<String>,
+    pub gte: Option<String>,
+    pub lte: Option<String>,
+    pub in_values: Option<Vec<String>>,
+    pub not_in: Option<Vec<String>>,
+    pub contains: Option<String>,
+    pub contains_nocase: Option<String>,
+    pub not_contains: Option<String>,
+    pub not_contains_nocase: Option<String>,
+    pub starts_with: Option<String>,
+    pub starts_with_nocase: Option<String>,
+    pub not_starts_with: Option<String>,
+    pub not_starts_with_nocase: Option<String>,
+    pub ends_with: Option<String>,
+    pub ends_with_nocase: Option<String>,
+    pub not_ends_with: Option<String>,
+    pub not_ends_with_nocase: Option<String>,
+}
+
+pub(crate) fn push_text_field_filters<'qb>(
+    separated: &mut Separated<'qb, Postgres, &'static str>,
+    has_where: &mut bool,
+    column: &'static str,
+    filter: TextFieldFilter,
+) {
+    push_text_filter(separated, has_where, column, filter.exact);
+    push_text_not_filter(separated, has_where, column, filter.not);
+    push_text_comparison_filters(
+        separated, has_where, column, filter.gt, filter.lt, filter.gte, filter.lte,
+    );
+    push_text_array_filter(separated, has_where, column, filter.in_values);
+    push_text_not_array_filter(separated, has_where, column, filter.not_in);
+    push_text_contains_filter(separated, has_where, column, filter.contains, false);
+    push_text_contains_filter(separated, has_where, column, filter.contains_nocase, true);
+    push_text_not_contains_filter(separated, has_where, column, filter.not_contains, false);
+    push_text_not_contains_filter(
+        separated,
+        has_where,
+        column,
+        filter.not_contains_nocase,
+        true,
+    );
+    push_text_prefix_filter(separated, has_where, column, filter.starts_with);
+    push_text_prefix_nocase_filter(separated, has_where, column, filter.starts_with_nocase);
+    push_text_not_prefix_filter(separated, has_where, column, filter.not_starts_with, false);
+    push_text_not_prefix_filter(
+        separated,
+        has_where,
+        column,
+        filter.not_starts_with_nocase,
+        true,
+    );
+    push_text_suffix_filter(separated, has_where, column, filter.ends_with);
+    push_text_suffix_nocase_filter(separated, has_where, column, filter.ends_with_nocase);
+    push_text_not_suffix_filter(separated, has_where, column, filter.not_ends_with, false);
+    push_text_not_suffix_filter(
+        separated,
+        has_where,
+        column,
+        filter.not_ends_with_nocase,
+        true,
+    );
+}

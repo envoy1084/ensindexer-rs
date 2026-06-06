@@ -137,98 +137,32 @@ impl WrappedDomainsRepo<'_> {
             "owner_id",
             filter.owner_filter,
         );
-        push_text_filter(&mut separated, &mut has_where, "name", filter.name);
-        push_text_not_filter(&mut separated, &mut has_where, "name", filter.name_not);
-        push_text_comparison_filters(
+        push_text_field_filters(
             &mut separated,
             &mut has_where,
             "name",
-            filter.name_gt,
-            filter.name_lt,
-            filter.name_gte,
-            filter.name_lte,
-        );
-        push_text_array_filter(&mut separated, &mut has_where, "name", filter.name_in);
-        push_text_not_array_filter(&mut separated, &mut has_where, "name", filter.name_not_in);
-        push_text_contains_filter(
-            &mut separated,
-            &mut has_where,
-            "name",
-            filter.name_contains,
-            false,
-        );
-        push_text_contains_filter(
-            &mut separated,
-            &mut has_where,
-            "name",
-            filter.name_contains_nocase,
-            true,
-        );
-        push_text_not_contains_filter(
-            &mut separated,
-            &mut has_where,
-            "name",
-            filter.name_not_contains,
-            false,
-        );
-        push_text_not_contains_filter(
-            &mut separated,
-            &mut has_where,
-            "name",
-            filter.name_not_contains_nocase,
-            true,
-        );
-        push_text_prefix_filter(
-            &mut separated,
-            &mut has_where,
-            "name",
-            filter.name_starts_with,
-        );
-        push_text_prefix_nocase_filter(
-            &mut separated,
-            &mut has_where,
-            "name",
-            filter.name_starts_with_nocase,
-        );
-        push_text_not_prefix_filter(
-            &mut separated,
-            &mut has_where,
-            "name",
-            filter.name_not_starts_with,
-            false,
-        );
-        push_text_not_prefix_filter(
-            &mut separated,
-            &mut has_where,
-            "name",
-            filter.name_not_starts_with_nocase,
-            true,
-        );
-        push_text_suffix_filter(
-            &mut separated,
-            &mut has_where,
-            "name",
-            filter.name_ends_with,
-        );
-        push_text_suffix_nocase_filter(
-            &mut separated,
-            &mut has_where,
-            "name",
-            filter.name_ends_with_nocase,
-        );
-        push_text_not_suffix_filter(
-            &mut separated,
-            &mut has_where,
-            "name",
-            filter.name_not_ends_with,
-            false,
-        );
-        push_text_not_suffix_filter(
-            &mut separated,
-            &mut has_where,
-            "name",
-            filter.name_not_ends_with_nocase,
-            true,
+            TextFieldFilter {
+                exact: filter.name,
+                not: filter.name_not,
+                gt: filter.name_gt,
+                lt: filter.name_lt,
+                gte: filter.name_gte,
+                lte: filter.name_lte,
+                in_values: filter.name_in,
+                not_in: filter.name_not_in,
+                contains: filter.name_contains,
+                contains_nocase: filter.name_contains_nocase,
+                not_contains: filter.name_not_contains,
+                not_contains_nocase: filter.name_not_contains_nocase,
+                starts_with: filter.name_starts_with,
+                starts_with_nocase: filter.name_starts_with_nocase,
+                not_starts_with: filter.name_not_starts_with,
+                not_starts_with_nocase: filter.name_not_starts_with_nocase,
+                ends_with: filter.name_ends_with,
+                ends_with_nocase: filter.name_ends_with_nocase,
+                not_ends_with: filter.name_not_ends_with,
+                not_ends_with_nocase: filter.name_not_ends_with_nocase,
+            },
         );
         push_numeric_text_filter(
             &mut separated,
