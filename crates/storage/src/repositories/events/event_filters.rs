@@ -231,4 +231,41 @@ mod tests {
             "select id from abi_changed_events where content_type != $1::numeric and content_type >= $2::numeric and content_type = any(array[$3::numeric, $4::numeric]) and is_authorized != $5 and not (is_authorized = any($6)) "
         );
     }
+
+    #[test]
+    fn event_specific_filters_include_text_operator_variants() {
+        let filter = EventFilter {
+            name_not_contains_nocase: Some("bad".into()),
+            name_starts_with: Some("abc".into()),
+            key_not_in: Some(vec!["email".into()]),
+            key_ends_with_nocase: Some("mail".into()),
+            value_gte: Some("a".into()),
+            value_not_contains: Some("secret".into()),
+            ..EventFilter::default()
+        };
+        let mut query = QueryBuilder::<Postgres>::new("select id from name_changed_events");
+        {
+            let mut separated = query.separated(" and ");
+            let mut has_where = false;
+            push_event_specific_filters(
+                &mut separated,
+                &mut has_where,
+                "name_changed_events",
+                &filter,
+            );
+            push_event_specific_filters(
+                &mut separated,
+                &mut has_where,
+                "text_changed_events",
+                &filter,
+            );
+            separated.push_unseparated(" ");
+        }
+
+        let built = query.build();
+        assert_eq!(
+            built.sql(),
+            "select id from name_changed_events where not (lower(name) like lower($1)) and name like $2 and not (key = any($3)) and lower(key) like lower($4) and value >= $5 and not (value like $6) "
+        );
+    }
 }

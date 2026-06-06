@@ -49,7 +49,24 @@ pub(crate) struct NameFieldFilter {
 impl ApplyEventFilter for NameFieldFilter {
     fn apply(self, filter: &mut EventFilter) {
         filter.name = self.name;
+        filter.name_not = self.name_not;
+        filter.name_gt = self.name_gt;
+        filter.name_lt = self.name_lt;
+        filter.name_gte = self.name_gte;
+        filter.name_lte = self.name_lte;
+        filter.name_in = self.name_in;
+        filter.name_not_in = self.name_not_in;
         filter.name_contains = self.name_contains;
         filter.name_contains_nocase = self.name_contains_nocase;
+        filter.name_not_contains = self.name_not_contains;
+        filter.name_not_contains_nocase = self.name_not_contains_nocase;
+        filter.name_starts_with = self.name_starts_with;
+        filter.name_starts_with_nocase = self.name_starts_with_nocase;
+        filter.name_not_starts_with = self.name_not_starts_with;
+        filter.name_not_starts_with_nocase = self.name_not_starts_with_nocase;
+        filter.name_ends_with = self.name_ends_with;
+        filter.name_ends_with_nocase = self.name_ends_with_nocase;
+        filter.name_not_ends_with = self.name_not_ends_with;
+        filter.name_not_ends_with_nocase = self.name_not_ends_with_nocase;
     }
 }

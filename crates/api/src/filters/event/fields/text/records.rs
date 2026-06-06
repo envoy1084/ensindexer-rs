@@ -49,7 +49,25 @@ pub(crate) struct KeyFieldFilter {
 impl ApplyEventFilter for KeyFieldFilter {
     fn apply(self, filter: &mut EventFilter) {
         filter.key = self.key;
+        filter.key_not = self.key_not;
+        filter.key_gt = self.key_gt;
+        filter.key_lt = self.key_lt;
+        filter.key_gte = self.key_gte;
+        filter.key_lte = self.key_lte;
+        filter.key_in = self.key_in;
+        filter.key_not_in = self.key_not_in;
         filter.key_contains = self.key_contains;
+        filter.key_contains_nocase = self.key_contains_nocase;
+        filter.key_not_contains = self.key_not_contains;
+        filter.key_not_contains_nocase = self.key_not_contains_nocase;
+        filter.key_starts_with = self.key_starts_with;
+        filter.key_starts_with_nocase = self.key_starts_with_nocase;
+        filter.key_not_starts_with = self.key_not_starts_with;
+        filter.key_not_starts_with_nocase = self.key_not_starts_with_nocase;
+        filter.key_ends_with = self.key_ends_with;
+        filter.key_ends_with_nocase = self.key_ends_with_nocase;
+        filter.key_not_ends_with = self.key_not_ends_with;
+        filter.key_not_ends_with_nocase = self.key_not_ends_with_nocase;
     }
 }
 
@@ -100,6 +118,24 @@ pub(crate) struct ValueFieldFilter {
 impl ApplyEventFilter for ValueFieldFilter {
     fn apply(self, filter: &mut EventFilter) {
         filter.value = self.value;
+        filter.value_not = self.value_not;
+        filter.value_gt = self.value_gt;
+        filter.value_lt = self.value_lt;
+        filter.value_gte = self.value_gte;
+        filter.value_lte = self.value_lte;
+        filter.value_in = self.value_in;
+        filter.value_not_in = self.value_not_in;
         filter.value_contains = self.value_contains;
+        filter.value_contains_nocase = self.value_contains_nocase;
+        filter.value_not_contains = self.value_not_contains;
+        filter.value_not_contains_nocase = self.value_not_contains_nocase;
+        filter.value_starts_with = self.value_starts_with;
+        filter.value_starts_with_nocase = self.value_starts_with_nocase;
+        filter.value_not_starts_with = self.value_not_starts_with;
+        filter.value_not_starts_with_nocase = self.value_not_starts_with_nocase;
+        filter.value_ends_with = self.value_ends_with;
+        filter.value_ends_with_nocase = self.value_ends_with_nocase;
+        filter.value_not_ends_with = self.value_not_ends_with;
+        filter.value_not_ends_with_nocase = self.value_not_ends_with_nocase;
     }
 }
