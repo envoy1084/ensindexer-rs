@@ -12,6 +12,7 @@ mod refs;
 mod registration;
 mod resolver;
 mod specific_filters;
+mod text_fields;
 
 pub struct EventsRepo<'a> {
     pub(crate) pool: &'a PgPool,
