@@ -24,7 +24,7 @@ impl EntityQueries {
         ctx: &Context<'_>,
         id: ID,
         block: Option<BlockHeight>,
-        #[graphql(name = "subgraphError")] _subgraph_error: Option<SubgraphErrorPolicy>,
+        #[graphql(name = "subgraphError", default)] _subgraph_error: SubgraphErrorPolicy,
     ) -> Result<Option<Domain>> {
         ensure_current_block(block)?;
         let storage = ctx.data::<Storage>()?;
@@ -44,7 +44,7 @@ impl EntityQueries {
         #[graphql(name = "orderBy")] order_by: Option<DomainOrderBy>,
         #[graphql(name = "orderDirection")] order_direction: Option<OrderDirection>,
         block: Option<BlockHeight>,
-        #[graphql(name = "subgraphError")] _subgraph_error: Option<SubgraphErrorPolicy>,
+        #[graphql(name = "subgraphError", default)] _subgraph_error: SubgraphErrorPolicy,
     ) -> Result<Vec<Domain>> {
         ensure_current_block(block)?;
         let storage = ctx.data::<Storage>()?;
@@ -68,7 +68,7 @@ impl EntityQueries {
         ctx: &Context<'_>,
         id: ID,
         block: Option<BlockHeight>,
-        #[graphql(name = "subgraphError")] _subgraph_error: Option<SubgraphErrorPolicy>,
+        #[graphql(name = "subgraphError", default)] _subgraph_error: SubgraphErrorPolicy,
     ) -> Result<Option<Account>> {
         ensure_current_block(block)?;
         let storage = ctx.data::<Storage>()?;
@@ -88,7 +88,7 @@ impl EntityQueries {
         #[graphql(name = "orderBy")] order_by: Option<AccountOrderBy>,
         #[graphql(name = "orderDirection")] order_direction: Option<OrderDirection>,
         block: Option<BlockHeight>,
-        #[graphql(name = "subgraphError")] _subgraph_error: Option<SubgraphErrorPolicy>,
+        #[graphql(name = "subgraphError", default)] _subgraph_error: SubgraphErrorPolicy,
     ) -> Result<Vec<Account>> {
         ensure_current_block(block)?;
         let storage = ctx.data::<Storage>()?;
@@ -112,7 +112,7 @@ impl EntityQueries {
         ctx: &Context<'_>,
         id: ID,
         block: Option<BlockHeight>,
-        #[graphql(name = "subgraphError")] _subgraph_error: Option<SubgraphErrorPolicy>,
+        #[graphql(name = "subgraphError", default)] _subgraph_error: SubgraphErrorPolicy,
     ) -> Result<Option<Registration>> {
         ensure_current_block(block)?;
         let storage = ctx.data::<Storage>()?;
@@ -132,7 +132,7 @@ impl EntityQueries {
         #[graphql(name = "orderBy")] order_by: Option<RegistrationOrderBy>,
         #[graphql(name = "orderDirection")] order_direction: Option<OrderDirection>,
         block: Option<BlockHeight>,
-        #[graphql(name = "subgraphError")] _subgraph_error: Option<SubgraphErrorPolicy>,
+        #[graphql(name = "subgraphError", default)] _subgraph_error: SubgraphErrorPolicy,
     ) -> Result<Vec<Registration>> {
         ensure_current_block(block)?;
         let storage = ctx.data::<Storage>()?;
@@ -156,7 +156,7 @@ impl EntityQueries {
         ctx: &Context<'_>,
         id: ID,
         block: Option<BlockHeight>,
-        #[graphql(name = "subgraphError")] _subgraph_error: Option<SubgraphErrorPolicy>,
+        #[graphql(name = "subgraphError", default)] _subgraph_error: SubgraphErrorPolicy,
     ) -> Result<Option<WrappedDomain>> {
         ensure_current_block(block)?;
         let storage = ctx.data::<Storage>()?;
@@ -176,7 +176,7 @@ impl EntityQueries {
         #[graphql(name = "orderBy")] order_by: Option<WrappedDomainOrderBy>,
         #[graphql(name = "orderDirection")] order_direction: Option<OrderDirection>,
         block: Option<BlockHeight>,
-        #[graphql(name = "subgraphError")] _subgraph_error: Option<SubgraphErrorPolicy>,
+        #[graphql(name = "subgraphError", default)] _subgraph_error: SubgraphErrorPolicy,
     ) -> Result<Vec<WrappedDomain>> {
         ensure_current_block(block)?;
         let storage = ctx.data::<Storage>()?;
@@ -200,7 +200,7 @@ impl EntityQueries {
         ctx: &Context<'_>,
         id: ID,
         block: Option<BlockHeight>,
-        #[graphql(name = "subgraphError")] _subgraph_error: Option<SubgraphErrorPolicy>,
+        #[graphql(name = "subgraphError", default)] _subgraph_error: SubgraphErrorPolicy,
     ) -> Result<Option<Resolver>> {
         ensure_current_block(block)?;
         let storage = ctx.data::<Storage>()?;
@@ -220,7 +220,7 @@ impl EntityQueries {
         #[graphql(name = "orderBy")] order_by: Option<ResolverOrderBy>,
         #[graphql(name = "orderDirection")] order_direction: Option<OrderDirection>,
         block: Option<BlockHeight>,
-        #[graphql(name = "subgraphError")] _subgraph_error: Option<SubgraphErrorPolicy>,
+        #[graphql(name = "subgraphError", default)] _subgraph_error: SubgraphErrorPolicy,
     ) -> Result<Vec<Resolver>> {
         ensure_current_block(block)?;
         let storage = ctx.data::<Storage>()?;

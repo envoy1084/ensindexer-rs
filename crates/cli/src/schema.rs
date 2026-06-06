@@ -17,6 +17,26 @@ query IntrospectionQuery {
           name
           args {
             name
+            type {
+              kind
+              name
+              ofType {
+                kind
+                name
+                ofType {
+                  kind
+                  name
+                  ofType {
+                    kind
+                    name
+                    ofType {
+                      kind
+                      name
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -102,15 +122,18 @@ async fn fetch_official_schema(url: &str, bearer: Option<&str>) -> anyhow::Resul
 
 fn local_schema_summary() -> SchemaSummary {
     let sdl = build_schema_sdl();
+    let (query_fields, query_arg_types) = parse_query_fields(&sdl);
     SchemaSummary {
-        query_fields: parse_query_fields(&sdl),
+        query_fields,
+        query_arg_types,
         input_types: parse_named_blocks(&sdl, "input "),
         enum_types: parse_named_blocks(&sdl, "enum "),
     }
 }
 
-fn parse_query_fields(sdl: &str) -> BTreeMap<String, BTreeSet<String>> {
+fn parse_query_fields(sdl: &str) -> (BTreeMap<String, BTreeSet<String>>, BTreeMap<String, String>) {
     let mut fields = BTreeMap::new();
+    let mut arg_types = BTreeMap::new();
     let mut in_query = false;
     for line in sdl.lines() {
         let trimmed = line.trim();
@@ -127,9 +150,13 @@ fn parse_query_fields(sdl: &str) -> BTreeMap<String, BTreeSet<String>> {
         let Some(name) = trimmed.split(['(', ':']).next() else {
             continue;
         };
-        fields.insert(name.to_owned(), parse_args(trimmed));
+        let (args, types) = parse_args(trimmed);
+        for (arg, ty) in types {
+            arg_types.insert(format!("{name}.{arg}"), ty);
+        }
+        fields.insert(name.to_owned(), args);
     }
-    fields
+    (fields, arg_types)
 }
 
 fn parse_named_blocks(sdl: &str, prefix: &str) -> BTreeMap<String, BTreeSet<String>> {
@@ -164,19 +191,27 @@ fn parse_named_blocks(sdl: &str, prefix: &str) -> BTreeMap<String, BTreeSet<Stri
     types
 }
 
-fn parse_args(line: &str) -> BTreeSet<String> {
+fn parse_args(line: &str) -> (BTreeSet<String>, BTreeMap<String, String>) {
     let Some(args_start) = line.find('(') else {
-        return BTreeSet::new();
+        return (BTreeSet::new(), BTreeMap::new());
     };
     let Some(args_end) = line[args_start + 1..].find(')') else {
-        return BTreeSet::new();
+        return (BTreeSet::new(), BTreeMap::new());
     };
-    line[args_start + 1..args_start + 1 + args_end]
-        .split(',')
-        .filter_map(|arg| arg.trim().split(':').next())
-        .filter(|name| !name.is_empty())
-        .map(str::to_owned)
-        .collect()
+    let mut args = BTreeSet::new();
+    let mut arg_types = BTreeMap::new();
+    for arg in line[args_start + 1..args_start + 1 + args_end].split(',') {
+        let mut parts = arg.trim().splitn(2, ':');
+        let Some(name) = parts.next().filter(|name| !name.is_empty()) else {
+            continue;
+        };
+        args.insert(name.to_owned());
+        if let Some(ty) = parts.next() {
+            let ty = ty.split('=').next().unwrap_or(ty);
+            arg_types.insert(name.to_owned(), ty.trim().replace(' ', ""));
+        }
+    }
+    (args, arg_types)
 }
 
 fn first_token(value: &str) -> Option<&str> {
@@ -187,6 +222,7 @@ fn first_token(value: &str) -> Option<&str> {
 }
 
 fn schema_summary(schema: &Value) -> anyhow::Result<SchemaSummary> {
+    let mut query_arg_types = BTreeMap::new();
     let query_fields = schema
         .pointer("/queryType/fields")
         .and_then(Value::as_array)
@@ -194,14 +230,21 @@ fn schema_summary(schema: &Value) -> anyhow::Result<SchemaSummary> {
         .iter()
         .filter_map(|field| {
             let name = field.get("name").and_then(Value::as_str)?;
-            let args = field
+            let mut args = BTreeSet::new();
+            for arg in field
                 .get("args")
                 .and_then(Value::as_array)
                 .into_iter()
                 .flatten()
-                .filter_map(|arg| arg.get("name").and_then(Value::as_str))
-                .map(str::to_owned)
-                .collect();
+            {
+                let Some(arg_name) = arg.get("name").and_then(Value::as_str) else {
+                    continue;
+                };
+                args.insert(arg_name.to_owned());
+                if let Some(ty) = arg.get("type") {
+                    query_arg_types.insert(format!("{name}.{arg_name}"), format_type_ref(ty));
+                }
+            }
             Some((name.to_owned(), args))
         })
         .collect();
@@ -229,9 +272,28 @@ fn schema_summary(schema: &Value) -> anyhow::Result<SchemaSummary> {
 
     Ok(SchemaSummary {
         query_fields,
+        query_arg_types,
         input_types,
         enum_types,
     })
+}
+
+fn format_type_ref(ty: &Value) -> String {
+    match ty.get("kind").and_then(Value::as_str) {
+        Some("NON_NULL") => format!(
+            "{}!",
+            ty.get("ofType").map(format_type_ref).unwrap_or_default()
+        ),
+        Some("LIST") => format!(
+            "[{}]",
+            ty.get("ofType").map(format_type_ref).unwrap_or_default()
+        ),
+        _ => ty
+            .get("name")
+            .and_then(Value::as_str)
+            .unwrap_or_default()
+            .to_owned(),
+    }
 }
 
 fn type_member_names(ty: &Value, key: &str) -> BTreeSet<String> {
@@ -246,6 +308,7 @@ fn type_member_names(ty: &Value, key: &str) -> BTreeSet<String> {
 
 struct SchemaSummary {
     query_fields: BTreeMap<String, BTreeSet<String>>,
+    query_arg_types: BTreeMap<String, String>,
     input_types: BTreeMap<String, BTreeSet<String>>,
     enum_types: BTreeMap<String, BTreeSet<String>>,
 }
@@ -257,6 +320,10 @@ impl SchemaSummary {
             extra_query_fields: missing_keys(&self.query_fields, &official.query_fields),
             missing_query_args: missing_members(&official.query_fields, &self.query_fields),
             extra_query_args: missing_members(&self.query_fields, &official.query_fields),
+            mismatched_query_arg_types: mismatched_values(
+                &official.query_arg_types,
+                &self.query_arg_types,
+            ),
             missing_input_types: missing_keys(&official.input_types, &self.input_types),
             extra_input_types: missing_keys(&self.input_types, &official.input_types),
             missing_input_fields: missing_members(&official.input_types, &self.input_types),
@@ -274,6 +341,7 @@ struct SchemaDiff {
     extra_query_fields: Vec<String>,
     missing_query_args: Vec<String>,
     extra_query_args: Vec<String>,
+    mismatched_query_arg_types: Vec<String>,
     missing_input_types: Vec<String>,
     extra_input_types: Vec<String>,
     missing_input_fields: Vec<String>,
@@ -288,6 +356,7 @@ impl SchemaDiff {
     fn has_missing(&self) -> bool {
         !self.missing_query_fields.is_empty()
             || !self.missing_query_args.is_empty()
+            || !self.mismatched_query_arg_types.is_empty()
             || !self.missing_input_types.is_empty()
             || !self.missing_input_fields.is_empty()
             || !self.missing_enum_types.is_empty()
@@ -299,6 +368,10 @@ impl SchemaDiff {
         print_section("extra query fields", &self.extra_query_fields);
         print_section("missing query args", &self.missing_query_args);
         print_section("extra query args", &self.extra_query_args);
+        print_section(
+            "mismatched query arg types",
+            &self.mismatched_query_arg_types,
+        );
         print_section("missing input types", &self.missing_input_types);
         print_section("extra input types", &self.extra_input_types);
         print_section("missing input fields", &self.missing_input_fields);
@@ -334,6 +407,19 @@ fn missing_members(
         }
     }
     missing
+}
+
+fn mismatched_values(
+    left: &BTreeMap<String, String>,
+    right: &BTreeMap<String, String>,
+) -> Vec<String> {
+    left.iter()
+        .filter_map(|(key, left_value)| {
+            let right_value = right.get(key)?;
+            (left_value != right_value)
+                .then(|| format!("{key}: official={left_value} local={right_value}"))
+        })
+        .collect()
 }
 
 fn print_section(label: &str, values: &[String]) {

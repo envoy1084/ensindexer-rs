@@ -30,7 +30,7 @@ impl DomainEventQueries {
         ctx: &Context<'_>,
         id: ID,
         block: Option<BlockHeight>,
-        #[graphql(name = "subgraphError")] _subgraph_error: Option<SubgraphErrorPolicy>,
+        #[graphql(name = "subgraphError", default)] _subgraph_error: SubgraphErrorPolicy,
     ) -> Result<Option<TransferEvent>> {
         ensure_current_block(block)?;
         let storage = ctx.data::<Storage>()?;
@@ -51,7 +51,7 @@ impl DomainEventQueries {
         #[graphql(name = "orderBy")] order_by: Option<TransferOrderBy>,
         #[graphql(name = "orderDirection")] order_direction: Option<OrderDirection>,
         block: Option<BlockHeight>,
-        #[graphql(name = "subgraphError")] _subgraph_error: Option<SubgraphErrorPolicy>,
+        #[graphql(name = "subgraphError", default)] _subgraph_error: SubgraphErrorPolicy,
     ) -> Result<Vec<TransferEvent>> {
         ensure_current_block(block)?;
         let storage = ctx.data::<Storage>()?;
@@ -76,7 +76,7 @@ impl DomainEventQueries {
         ctx: &Context<'_>,
         id: ID,
         block: Option<BlockHeight>,
-        #[graphql(name = "subgraphError")] _subgraph_error: Option<SubgraphErrorPolicy>,
+        #[graphql(name = "subgraphError", default)] _subgraph_error: SubgraphErrorPolicy,
     ) -> Result<Option<NewOwnerEvent>> {
         ensure_current_block(block)?;
         let storage = ctx.data::<Storage>()?;
@@ -97,7 +97,7 @@ impl DomainEventQueries {
         #[graphql(name = "orderBy")] order_by: Option<NewOwnerOrderBy>,
         #[graphql(name = "orderDirection")] order_direction: Option<OrderDirection>,
         block: Option<BlockHeight>,
-        #[graphql(name = "subgraphError")] _subgraph_error: Option<SubgraphErrorPolicy>,
+        #[graphql(name = "subgraphError", default)] _subgraph_error: SubgraphErrorPolicy,
     ) -> Result<Vec<NewOwnerEvent>> {
         ensure_current_block(block)?;
         let storage = ctx.data::<Storage>()?;
@@ -122,7 +122,7 @@ impl DomainEventQueries {
         ctx: &Context<'_>,
         id: ID,
         block: Option<BlockHeight>,
-        #[graphql(name = "subgraphError")] _subgraph_error: Option<SubgraphErrorPolicy>,
+        #[graphql(name = "subgraphError", default)] _subgraph_error: SubgraphErrorPolicy,
     ) -> Result<Option<NewResolverEvent>> {
         ensure_current_block(block)?;
         let storage = ctx.data::<Storage>()?;
@@ -143,7 +143,7 @@ impl DomainEventQueries {
         #[graphql(name = "orderBy")] order_by: Option<NewResolverOrderBy>,
         #[graphql(name = "orderDirection")] order_direction: Option<OrderDirection>,
         block: Option<BlockHeight>,
-        #[graphql(name = "subgraphError")] _subgraph_error: Option<SubgraphErrorPolicy>,
+        #[graphql(name = "subgraphError", default)] _subgraph_error: SubgraphErrorPolicy,
     ) -> Result<Vec<NewResolverEvent>> {
         ensure_current_block(block)?;
         let storage = ctx.data::<Storage>()?;
@@ -168,7 +168,7 @@ impl DomainEventQueries {
         ctx: &Context<'_>,
         id: ID,
         block: Option<BlockHeight>,
-        #[graphql(name = "subgraphError")] _subgraph_error: Option<SubgraphErrorPolicy>,
+        #[graphql(name = "subgraphError", default)] _subgraph_error: SubgraphErrorPolicy,
     ) -> Result<Option<NewTtlEvent>> {
         ensure_current_block(block)?;
         let storage = ctx.data::<Storage>()?;
@@ -189,7 +189,7 @@ impl DomainEventQueries {
         #[graphql(name = "orderBy")] order_by: Option<NewTtlOrderBy>,
         #[graphql(name = "orderDirection")] order_direction: Option<OrderDirection>,
         block: Option<BlockHeight>,
-        #[graphql(name = "subgraphError")] _subgraph_error: Option<SubgraphErrorPolicy>,
+        #[graphql(name = "subgraphError", default)] _subgraph_error: SubgraphErrorPolicy,
     ) -> Result<Vec<NewTtlEvent>> {
         ensure_current_block(block)?;
         let storage = ctx.data::<Storage>()?;
@@ -214,7 +214,7 @@ impl DomainEventQueries {
         ctx: &Context<'_>,
         id: ID,
         block: Option<BlockHeight>,
-        #[graphql(name = "subgraphError")] _subgraph_error: Option<SubgraphErrorPolicy>,
+        #[graphql(name = "subgraphError", default)] _subgraph_error: SubgraphErrorPolicy,
     ) -> Result<Option<WrappedTransferEvent>> {
         ensure_current_block(block)?;
         let storage = ctx.data::<Storage>()?;
@@ -235,7 +235,7 @@ impl DomainEventQueries {
         #[graphql(name = "orderBy")] order_by: Option<WrappedTransferOrderBy>,
         #[graphql(name = "orderDirection")] order_direction: Option<OrderDirection>,
         block: Option<BlockHeight>,
-        #[graphql(name = "subgraphError")] _subgraph_error: Option<SubgraphErrorPolicy>,
+        #[graphql(name = "subgraphError", default)] _subgraph_error: SubgraphErrorPolicy,
     ) -> Result<Vec<WrappedTransferEvent>> {
         ensure_current_block(block)?;
         let storage = ctx.data::<Storage>()?;
@@ -260,7 +260,7 @@ impl DomainEventQueries {
         ctx: &Context<'_>,
         id: ID,
         block: Option<BlockHeight>,
-        #[graphql(name = "subgraphError")] _subgraph_error: Option<SubgraphErrorPolicy>,
+        #[graphql(name = "subgraphError", default)] _subgraph_error: SubgraphErrorPolicy,
     ) -> Result<Option<NameWrappedEvent>> {
         ensure_current_block(block)?;
         let storage = ctx.data::<Storage>()?;
@@ -281,7 +281,7 @@ impl DomainEventQueries {
         #[graphql(name = "orderBy")] order_by: Option<NameWrappedOrderBy>,
         #[graphql(name = "orderDirection")] order_direction: Option<OrderDirection>,
         block: Option<BlockHeight>,
-        #[graphql(name = "subgraphError")] _subgraph_error: Option<SubgraphErrorPolicy>,
+        #[graphql(name = "subgraphError", default)] _subgraph_error: SubgraphErrorPolicy,
     ) -> Result<Vec<NameWrappedEvent>> {
         ensure_current_block(block)?;
         let storage = ctx.data::<Storage>()?;
@@ -306,7 +306,7 @@ impl DomainEventQueries {
         ctx: &Context<'_>,
         id: ID,
         block: Option<BlockHeight>,
-        #[graphql(name = "subgraphError")] _subgraph_error: Option<SubgraphErrorPolicy>,
+        #[graphql(name = "subgraphError", default)] _subgraph_error: SubgraphErrorPolicy,
     ) -> Result<Option<NameUnwrappedEvent>> {
         ensure_current_block(block)?;
         let storage = ctx.data::<Storage>()?;
@@ -327,7 +327,7 @@ impl DomainEventQueries {
         #[graphql(name = "orderBy")] order_by: Option<NameUnwrappedOrderBy>,
         #[graphql(name = "orderDirection")] order_direction: Option<OrderDirection>,
         block: Option<BlockHeight>,
-        #[graphql(name = "subgraphError")] _subgraph_error: Option<SubgraphErrorPolicy>,
+        #[graphql(name = "subgraphError", default)] _subgraph_error: SubgraphErrorPolicy,
     ) -> Result<Vec<NameUnwrappedEvent>> {
         ensure_current_block(block)?;
         let storage = ctx.data::<Storage>()?;
@@ -352,7 +352,7 @@ impl DomainEventQueries {
         ctx: &Context<'_>,
         id: ID,
         block: Option<BlockHeight>,
-        #[graphql(name = "subgraphError")] _subgraph_error: Option<SubgraphErrorPolicy>,
+        #[graphql(name = "subgraphError", default)] _subgraph_error: SubgraphErrorPolicy,
     ) -> Result<Option<FusesSetEvent>> {
         ensure_current_block(block)?;
         let storage = ctx.data::<Storage>()?;
@@ -373,7 +373,7 @@ impl DomainEventQueries {
         #[graphql(name = "orderBy")] order_by: Option<FusesSetOrderBy>,
         #[graphql(name = "orderDirection")] order_direction: Option<OrderDirection>,
         block: Option<BlockHeight>,
-        #[graphql(name = "subgraphError")] _subgraph_error: Option<SubgraphErrorPolicy>,
+        #[graphql(name = "subgraphError", default)] _subgraph_error: SubgraphErrorPolicy,
     ) -> Result<Vec<FusesSetEvent>> {
         ensure_current_block(block)?;
         let storage = ctx.data::<Storage>()?;
@@ -398,7 +398,7 @@ impl DomainEventQueries {
         ctx: &Context<'_>,
         id: ID,
         block: Option<BlockHeight>,
-        #[graphql(name = "subgraphError")] _subgraph_error: Option<SubgraphErrorPolicy>,
+        #[graphql(name = "subgraphError", default)] _subgraph_error: SubgraphErrorPolicy,
     ) -> Result<Option<ExpiryExtendedEvent>> {
         ensure_current_block(block)?;
         let storage = ctx.data::<Storage>()?;
@@ -419,7 +419,7 @@ impl DomainEventQueries {
         #[graphql(name = "orderBy")] order_by: Option<ExpiryExtendedOrderBy>,
         #[graphql(name = "orderDirection")] order_direction: Option<OrderDirection>,
         block: Option<BlockHeight>,
-        #[graphql(name = "subgraphError")] _subgraph_error: Option<SubgraphErrorPolicy>,
+        #[graphql(name = "subgraphError", default)] _subgraph_error: SubgraphErrorPolicy,
     ) -> Result<Vec<ExpiryExtendedEvent>> {
         ensure_current_block(block)?;
         let storage = ctx.data::<Storage>()?;
