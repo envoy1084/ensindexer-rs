@@ -89,7 +89,7 @@ impl EventsRepo<'_> {
 
         query
             .push(" order by ")
-            .push(event_order_column(order_by))
+            .push(event_ref_order_column(order_by))
             .push(" ")
             .push(direction.sql())
             .push(", id ")
@@ -107,6 +107,47 @@ fn event_ref_order_column(order_by: EventOrderField) -> &'static str {
     match order_by {
         EventOrderField::Domain | EventOrderField::Registration | EventOrderField::Resolver => {
             "parent_id"
+        }
+        EventOrderField::DomainId => "parent_id",
+        EventOrderField::DomainName => "(select d.name from domains d where d.id = parent_id)",
+        EventOrderField::DomainLabelName => {
+            "(select d.label_name from domains d where d.id = parent_id)"
+        }
+        EventOrderField::DomainLabelhash => {
+            "(select d.labelhash from domains d where d.id = parent_id)"
+        }
+        EventOrderField::DomainSubdomainCount => {
+            "(select d.subdomain_count from domains d where d.id = parent_id)"
+        }
+        EventOrderField::DomainTtl => "(select d.ttl from domains d where d.id = parent_id)",
+        EventOrderField::DomainIsMigrated => {
+            "(select d.is_migrated from domains d where d.id = parent_id)"
+        }
+        EventOrderField::DomainCreatedAt => {
+            "(select d.created_at from domains d where d.id = parent_id)"
+        }
+        EventOrderField::DomainExpiryDate => {
+            "(select d.expiry_date from domains d where d.id = parent_id)"
+        }
+        EventOrderField::RegistrationId => "parent_id",
+        EventOrderField::RegistrationRegistrationDate => {
+            "(select r.registration_date from registrations r where r.id = parent_id)"
+        }
+        EventOrderField::RegistrationExpiryDate => {
+            "(select r.expiry_date from registrations r where r.id = parent_id)"
+        }
+        EventOrderField::RegistrationCost => {
+            "(select r.cost from registrations r where r.id = parent_id)"
+        }
+        EventOrderField::RegistrationLabelName => {
+            "(select r.label_name from registrations r where r.id = parent_id)"
+        }
+        EventOrderField::ResolverId => "parent_id",
+        EventOrderField::ResolverAddress => {
+            "(select r.address from resolvers r where r.id = parent_id)"
+        }
+        EventOrderField::ResolverContentHash => {
+            "(select r.content_hash from resolvers r where r.id = parent_id)"
         }
         _ => event_order_column(order_by),
     }

@@ -251,13 +251,83 @@ pub(crate) fn event_order_column(order_by: EventOrderField) -> &'static str {
         EventOrderField::BlockNumber => "block_number",
         EventOrderField::TransactionId => "transaction_id",
         EventOrderField::Domain => "domain_id",
+        EventOrderField::DomainId => "domain_id",
+        EventOrderField::DomainName => "(select d.name from domains d where d.id = domain_id)",
+        EventOrderField::DomainLabelName => {
+            "(select d.label_name from domains d where d.id = domain_id)"
+        }
+        EventOrderField::DomainLabelhash => {
+            "(select d.labelhash from domains d where d.id = domain_id)"
+        }
+        EventOrderField::DomainSubdomainCount => {
+            "(select d.subdomain_count from domains d where d.id = domain_id)"
+        }
+        EventOrderField::DomainTtl => "(select d.ttl from domains d where d.id = domain_id)",
+        EventOrderField::DomainIsMigrated => {
+            "(select d.is_migrated from domains d where d.id = domain_id)"
+        }
+        EventOrderField::DomainCreatedAt => {
+            "(select d.created_at from domains d where d.id = domain_id)"
+        }
+        EventOrderField::DomainExpiryDate => {
+            "(select d.expiry_date from domains d where d.id = domain_id)"
+        }
         EventOrderField::ParentDomain => "parent_domain_id",
+        EventOrderField::ParentDomainId => "parent_domain_id",
+        EventOrderField::ParentDomainName => {
+            "(select d.name from domains d where d.id = parent_domain_id)"
+        }
+        EventOrderField::ParentDomainLabelName => {
+            "(select d.label_name from domains d where d.id = parent_domain_id)"
+        }
+        EventOrderField::ParentDomainLabelhash => {
+            "(select d.labelhash from domains d where d.id = parent_domain_id)"
+        }
+        EventOrderField::ParentDomainSubdomainCount => {
+            "(select d.subdomain_count from domains d where d.id = parent_domain_id)"
+        }
+        EventOrderField::ParentDomainTtl => {
+            "(select d.ttl from domains d where d.id = parent_domain_id)"
+        }
+        EventOrderField::ParentDomainIsMigrated => {
+            "(select d.is_migrated from domains d where d.id = parent_domain_id)"
+        }
+        EventOrderField::ParentDomainCreatedAt => {
+            "(select d.created_at from domains d where d.id = parent_domain_id)"
+        }
+        EventOrderField::ParentDomainExpiryDate => {
+            "(select d.expiry_date from domains d where d.id = parent_domain_id)"
+        }
         EventOrderField::Registration => "registration_id",
+        EventOrderField::RegistrationId => "registration_id",
+        EventOrderField::RegistrationRegistrationDate => {
+            "(select r.registration_date from registrations r where r.id = registration_id)"
+        }
+        EventOrderField::RegistrationExpiryDate => {
+            "(select r.expiry_date from registrations r where r.id = registration_id)"
+        }
+        EventOrderField::RegistrationCost => {
+            "(select r.cost from registrations r where r.id = registration_id)"
+        }
+        EventOrderField::RegistrationLabelName => {
+            "(select r.label_name from registrations r where r.id = registration_id)"
+        }
         EventOrderField::Resolver => "resolver_id",
+        EventOrderField::ResolverId => "resolver_id",
+        EventOrderField::ResolverAddress => {
+            "(select r.address from resolvers r where r.id = resolver_id)"
+        }
+        EventOrderField::ResolverContentHash => {
+            "(select r.content_hash from resolvers r where r.id = resolver_id)"
+        }
         EventOrderField::Owner => "owner_id",
+        EventOrderField::OwnerId => "owner_id",
         EventOrderField::Registrant => "registrant_id",
+        EventOrderField::RegistrantId => "registrant_id",
         EventOrderField::NewOwner => "new_owner_id",
+        EventOrderField::NewOwnerId => "new_owner_id",
         EventOrderField::Addr => "addr_id",
+        EventOrderField::AddrId => "addr_id",
         EventOrderField::Name => "name",
         EventOrderField::Fuses => "fuses",
         EventOrderField::Ttl => "ttl",

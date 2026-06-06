@@ -13,6 +13,24 @@ pub enum EventOrderBy {
     TransactionId,
     #[graphql(name = "domain")]
     Domain,
+    #[graphql(name = "domain__id")]
+    DomainId,
+    #[graphql(name = "domain__name")]
+    DomainName,
+    #[graphql(name = "domain__labelName")]
+    DomainLabelName,
+    #[graphql(name = "domain__labelhash")]
+    DomainLabelhash,
+    #[graphql(name = "domain__subdomainCount")]
+    DomainSubdomainCount,
+    #[graphql(name = "domain__ttl")]
+    DomainTtl,
+    #[graphql(name = "domain__isMigrated")]
+    DomainIsMigrated,
+    #[graphql(name = "domain__createdAt")]
+    DomainCreatedAt,
+    #[graphql(name = "domain__expiryDate")]
+    DomainExpiryDate,
 }
 
 impl From<EventOrderBy> for EventOrderField {
@@ -22,6 +40,15 @@ impl From<EventOrderBy> for EventOrderField {
             EventOrderBy::BlockNumber => Self::BlockNumber,
             EventOrderBy::TransactionId => Self::TransactionId,
             EventOrderBy::Domain => Self::Domain,
+            EventOrderBy::DomainId => Self::DomainId,
+            EventOrderBy::DomainName => Self::DomainName,
+            EventOrderBy::DomainLabelName => Self::DomainLabelName,
+            EventOrderBy::DomainLabelhash => Self::DomainLabelhash,
+            EventOrderBy::DomainSubdomainCount => Self::DomainSubdomainCount,
+            EventOrderBy::DomainTtl => Self::DomainTtl,
+            EventOrderBy::DomainIsMigrated => Self::DomainIsMigrated,
+            EventOrderBy::DomainCreatedAt => Self::DomainCreatedAt,
+            EventOrderBy::DomainExpiryDate => Self::DomainExpiryDate,
         }
     }
 }
@@ -57,108 +84,154 @@ macro_rules! event_order_wrapper {
     };
 }
 
-event_order_wrapper!(TransferOrderBy, "Transfer_orderBy", [
-    Domain => ("domain", Domain),
+macro_rules! domain_event_order_wrapper {
+    ($name:ident, $graphql_name:literal, [$($variant:ident => ($graphql_name_variant:literal, $field:ident)),* $(,)?]) => {
+        event_order_wrapper!($name, $graphql_name, [
+            Domain => ("domain", Domain),
+            DomainId => ("domain__id", DomainId),
+            DomainName => ("domain__name", DomainName),
+            DomainLabelName => ("domain__labelName", DomainLabelName),
+            DomainLabelhash => ("domain__labelhash", DomainLabelhash),
+            DomainSubdomainCount => ("domain__subdomainCount", DomainSubdomainCount),
+            DomainTtl => ("domain__ttl", DomainTtl),
+            DomainIsMigrated => ("domain__isMigrated", DomainIsMigrated),
+            DomainCreatedAt => ("domain__createdAt", DomainCreatedAt),
+            DomainExpiryDate => ("domain__expiryDate", DomainExpiryDate),
+            $($variant => ($graphql_name_variant, $field),)*
+        ]);
+    };
+}
+
+macro_rules! parent_domain_event_order_wrapper {
+    ($name:ident, $graphql_name:literal, [$($variant:ident => ($graphql_name_variant:literal, $field:ident)),* $(,)?]) => {
+        domain_event_order_wrapper!($name, $graphql_name, [
+            ParentDomain => ("parentDomain", ParentDomain),
+            ParentDomainId => ("parentDomain__id", ParentDomainId),
+            ParentDomainName => ("parentDomain__name", ParentDomainName),
+            ParentDomainLabelName => ("parentDomain__labelName", ParentDomainLabelName),
+            ParentDomainLabelhash => ("parentDomain__labelhash", ParentDomainLabelhash),
+            ParentDomainSubdomainCount => ("parentDomain__subdomainCount", ParentDomainSubdomainCount),
+            ParentDomainTtl => ("parentDomain__ttl", ParentDomainTtl),
+            ParentDomainIsMigrated => ("parentDomain__isMigrated", ParentDomainIsMigrated),
+            ParentDomainCreatedAt => ("parentDomain__createdAt", ParentDomainCreatedAt),
+            ParentDomainExpiryDate => ("parentDomain__expiryDate", ParentDomainExpiryDate),
+            $($variant => ($graphql_name_variant, $field),)*
+        ]);
+    };
+}
+
+macro_rules! registration_event_order_wrapper {
+    ($name:ident, $graphql_name:literal, [$($variant:ident => ($graphql_name_variant:literal, $field:ident)),* $(,)?]) => {
+        event_order_wrapper!($name, $graphql_name, [
+            Registration => ("registration", Registration),
+            RegistrationId => ("registration__id", RegistrationId),
+            RegistrationRegistrationDate => ("registration__registrationDate", RegistrationRegistrationDate),
+            RegistrationExpiryDate => ("registration__expiryDate", RegistrationExpiryDate),
+            RegistrationCost => ("registration__cost", RegistrationCost),
+            RegistrationLabelName => ("registration__labelName", RegistrationLabelName),
+            $($variant => ($graphql_name_variant, $field),)*
+        ]);
+    };
+}
+
+macro_rules! resolver_event_order_wrapper {
+    ($name:ident, $graphql_name:literal, [$($variant:ident => ($graphql_name_variant:literal, $field:ident)),* $(,)?]) => {
+        event_order_wrapper!($name, $graphql_name, [
+            Resolver => ("resolver", Resolver),
+            ResolverId => ("resolver__id", ResolverId),
+            ResolverAddress => ("resolver__address", ResolverAddress),
+            ResolverContentHash => ("resolver__contentHash", ResolverContentHash),
+            $($variant => ($graphql_name_variant, $field),)*
+        ]);
+    };
+}
+
+domain_event_order_wrapper!(TransferOrderBy, "Transfer_orderBy", [
     Owner => ("owner", Owner),
+    OwnerId => ("owner__id", OwnerId),
 ]);
-event_order_wrapper!(NewOwnerOrderBy, "NewOwner_orderBy", [
-    ParentDomain => ("parentDomain", ParentDomain),
-    Domain => ("domain", Domain),
+parent_domain_event_order_wrapper!(NewOwnerOrderBy, "NewOwner_orderBy", [
     Owner => ("owner", Owner),
+    OwnerId => ("owner__id", OwnerId),
 ]);
-event_order_wrapper!(NewResolverOrderBy, "NewResolver_orderBy", [
-    Domain => ("domain", Domain),
+domain_event_order_wrapper!(NewResolverOrderBy, "NewResolver_orderBy", [
     Resolver => ("resolver", Resolver),
+    ResolverId => ("resolver__id", ResolverId),
+    ResolverAddress => ("resolver__address", ResolverAddress),
+    ResolverContentHash => ("resolver__contentHash", ResolverContentHash),
 ]);
-event_order_wrapper!(NewTtlOrderBy, "NewTTL_orderBy", [
-    Domain => ("domain", Domain),
+domain_event_order_wrapper!(NewTtlOrderBy, "NewTTL_orderBy", [
     Ttl => ("ttl", Ttl),
 ]);
-event_order_wrapper!(WrappedTransferOrderBy, "WrappedTransfer_orderBy", [
-    Domain => ("domain", Domain),
+domain_event_order_wrapper!(WrappedTransferOrderBy, "WrappedTransfer_orderBy", [
     Owner => ("owner", Owner),
+    OwnerId => ("owner__id", OwnerId),
 ]);
-event_order_wrapper!(NameWrappedOrderBy, "NameWrapped_orderBy", [
-    Domain => ("domain", Domain),
+domain_event_order_wrapper!(NameWrappedOrderBy, "NameWrapped_orderBy", [
     Name => ("name", Name),
     Fuses => ("fuses", Fuses),
     Owner => ("owner", Owner),
+    OwnerId => ("owner__id", OwnerId),
     ExpiryDate => ("expiryDate", ExpiryDate),
 ]);
-event_order_wrapper!(NameUnwrappedOrderBy, "NameUnwrapped_orderBy", [
-    Domain => ("domain", Domain),
+domain_event_order_wrapper!(NameUnwrappedOrderBy, "NameUnwrapped_orderBy", [
     Owner => ("owner", Owner),
+    OwnerId => ("owner__id", OwnerId),
 ]);
-event_order_wrapper!(FusesSetOrderBy, "FusesSet_orderBy", [
-    Domain => ("domain", Domain),
+domain_event_order_wrapper!(FusesSetOrderBy, "FusesSet_orderBy", [
     Fuses => ("fuses", Fuses),
 ]);
-event_order_wrapper!(ExpiryExtendedOrderBy, "ExpiryExtended_orderBy", [
-    Domain => ("domain", Domain),
+domain_event_order_wrapper!(ExpiryExtendedOrderBy, "ExpiryExtended_orderBy", [
     ExpiryDate => ("expiryDate", ExpiryDate),
 ]);
-event_order_wrapper!(NameRegisteredOrderBy, "NameRegistered_orderBy", [
-    Registration => ("registration", Registration),
+registration_event_order_wrapper!(NameRegisteredOrderBy, "NameRegistered_orderBy", [
     Registrant => ("registrant", Registrant),
+    RegistrantId => ("registrant__id", RegistrantId),
     ExpiryDate => ("expiryDate", ExpiryDate),
 ]);
-event_order_wrapper!(NameRenewedOrderBy, "NameRenewed_orderBy", [
-    Registration => ("registration", Registration),
+registration_event_order_wrapper!(NameRenewedOrderBy, "NameRenewed_orderBy", [
     ExpiryDate => ("expiryDate", ExpiryDate),
 ]);
-event_order_wrapper!(NameTransferredOrderBy, "NameTransferred_orderBy", [
-    Registration => ("registration", Registration),
+registration_event_order_wrapper!(NameTransferredOrderBy, "NameTransferred_orderBy", [
     NewOwner => ("newOwner", NewOwner),
+    NewOwnerId => ("newOwner__id", NewOwnerId),
 ]);
-event_order_wrapper!(AddrChangedOrderBy, "AddrChanged_orderBy", [
-    Resolver => ("resolver", Resolver),
+resolver_event_order_wrapper!(AddrChangedOrderBy, "AddrChanged_orderBy", [
     Addr => ("addr", Addr),
+    AddrId => ("addr__id", AddrId),
 ]);
-event_order_wrapper!(MulticoinAddrChangedOrderBy, "MulticoinAddrChanged_orderBy", [
-    Resolver => ("resolver", Resolver),
+resolver_event_order_wrapper!(MulticoinAddrChangedOrderBy, "MulticoinAddrChanged_orderBy", [
     CoinType => ("coinType", CoinType),
     Addr => ("addr", Addr),
 ]);
-event_order_wrapper!(NameChangedOrderBy, "NameChanged_orderBy", [
-    Resolver => ("resolver", Resolver),
+resolver_event_order_wrapper!(NameChangedOrderBy, "NameChanged_orderBy", [
     Name => ("name", Name),
 ]);
-event_order_wrapper!(AbiChangedOrderBy, "AbiChanged_orderBy", [
-    Resolver => ("resolver", Resolver),
+resolver_event_order_wrapper!(AbiChangedOrderBy, "AbiChanged_orderBy", [
     ContentType => ("contentType", ContentType),
 ]);
-event_order_wrapper!(PubkeyChangedOrderBy, "PubkeyChanged_orderBy", [
-    Resolver => ("resolver", Resolver),
+resolver_event_order_wrapper!(PubkeyChangedOrderBy, "PubkeyChanged_orderBy", [
     X => ("x", X),
     Y => ("y", Y),
 ]);
-event_order_wrapper!(TextChangedOrderBy, "TextChanged_orderBy", [
-    Resolver => ("resolver", Resolver),
+resolver_event_order_wrapper!(TextChangedOrderBy, "TextChanged_orderBy", [
     Key => ("key", Key),
     Value => ("value", Value),
 ]);
-event_order_wrapper!(ContenthashChangedOrderBy, "ContenthashChanged_orderBy", [
-    Resolver => ("resolver", Resolver),
+resolver_event_order_wrapper!(ContenthashChangedOrderBy, "ContenthashChanged_orderBy", [
     Hash => ("hash", Hash),
 ]);
-event_order_wrapper!(InterfaceChangedOrderBy, "InterfaceChanged_orderBy", [
-    Resolver => ("resolver", Resolver),
+resolver_event_order_wrapper!(InterfaceChangedOrderBy, "InterfaceChanged_orderBy", [
     InterfaceId => ("interfaceID", InterfaceId),
     Implementer => ("implementer", Implementer),
 ]);
-event_order_wrapper!(AuthorisationChangedOrderBy, "AuthorisationChanged_orderBy", [
-    Resolver => ("resolver", Resolver),
+resolver_event_order_wrapper!(AuthorisationChangedOrderBy, "AuthorisationChanged_orderBy", [
     Owner => ("owner", Owner),
     Target => ("target", Target),
     IsAuthorized => ("isAuthorized", IsAuthorized),
 ]);
-event_order_wrapper!(VersionChangedOrderBy, "VersionChanged_orderBy", [
-    Resolver => ("resolver", Resolver),
+resolver_event_order_wrapper!(VersionChangedOrderBy, "VersionChanged_orderBy", [
     Version => ("version", Version),
 ]);
-event_order_wrapper!(RegistrationEventOrderBy, "RegistrationEvent_orderBy", [
-    Registration => ("registration", Registration),
-]);
-event_order_wrapper!(ResolverEventOrderBy, "ResolverEvent_orderBy", [
-    Resolver => ("resolver", Resolver),
-]);
+registration_event_order_wrapper!(RegistrationEventOrderBy, "RegistrationEvent_orderBy", []);
+resolver_event_order_wrapper!(ResolverEventOrderBy, "ResolverEvent_orderBy", []);
