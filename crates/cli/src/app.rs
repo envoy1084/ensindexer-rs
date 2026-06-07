@@ -53,6 +53,16 @@ enum Command {
         to: Option<u64>,
         #[arg(long)]
         archive_dir: Option<PathBuf>,
+        #[arg(long)]
+        verify: bool,
+    },
+    ArchiveResolvers {
+        #[arg(long)]
+        from: Option<u64>,
+        #[arg(long)]
+        to: Option<u64>,
+        #[arg(long)]
+        archive_dir: Option<PathBuf>,
     },
     Index,
     Compare {
@@ -155,13 +165,32 @@ pub async fn run() -> anyhow::Result<()> {
             from,
             to,
             archive_dir,
+            verify,
         } => {
             let config = AppConfig::from_env()?;
             let archive_dir = archive_dir
                 .or(config.raw_archive_dir)
                 .ok_or_else(|| anyhow::anyhow!("RAW_ARCHIVE_DIR or --archive-dir is required"))?;
-            let status = ingest::inspect_archive(&archive_dir, config.chain_id, from, to)?;
+            let status = ingest::inspect_archive(&archive_dir, config.chain_id, from, to, verify)?;
             print_archive_status(status);
+        }
+        Command::ArchiveResolvers {
+            from,
+            to,
+            archive_dir,
+        } => {
+            let config = AppConfig::from_env()?;
+            let archive_dir = archive_dir
+                .or(config.raw_archive_dir)
+                .ok_or_else(|| anyhow::anyhow!("RAW_ARCHIVE_DIR or --archive-dir is required"))?;
+            let status = ingest::rebuild_resolver_cache(&archive_dir, config.chain_id, from, to)?;
+            println!("resolver cache path: {}", status.path.display());
+            println!("resolver cache chain_id: {}", status.chain_id);
+            println!(
+                "resolver cache updated_to_block: {}",
+                status.updated_to_block
+            );
+            println!("resolver cache addresses: {}", status.addresses);
         }
         Command::Index => {
             let config = AppConfig::from_env()?;
@@ -214,6 +243,7 @@ fn print_archive_status(status: ingest::ArchiveStatus) {
     let total_logs: usize = status.ranges.iter().map(|range| range.logs).sum();
     println!("archive bytes: {total_bytes}");
     println!("archive logs: {total_logs}");
+    println!("archive verified: {}", status.verified);
 
     if status.is_contiguous() {
         println!("archive gaps: none");

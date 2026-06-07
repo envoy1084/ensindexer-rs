@@ -12,8 +12,9 @@ Operational command-line entrypoint for the ENS indexer.
 - `migrate`: apply SQLx migrations.
 - `backfill --from <block> --to <block>`: index a bounded historical range.
 - `archive --from <block> --to <block> [--archive-dir <dir>]`: fetch raw chain data into archive files without applying projection writes.
+- `archive-resolvers [--from <block>] [--to <block>] [--archive-dir <dir>]`: rebuild `resolvers.json` from existing raw archive range files.
 - `replay --from <block> --to <block> [--archive-dir <dir>]`: rebuild a bounded range from raw JSON archives without chain IO.
-- `archive-status [--from <block>] [--to <block>] [--archive-dir <dir>]`: verify raw archive checksums and report range coverage gaps.
+- `archive-status [--from <block>] [--to <block>] [--archive-dir <dir>] [--verify]`: report archive coverage gaps from the manifest, optionally verifying range checksums.
 - `index`: run the confirmation-depth live indexing loop.
 - `status`: print latest stored block and source checkpoints.
 - `reset --yes`: clear indexed projection/event/checkpoint state for rebuilds.

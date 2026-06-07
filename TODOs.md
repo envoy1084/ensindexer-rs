@@ -25,6 +25,7 @@ Last full verification: `cargo run -p cli -- schema-diff --output target/officia
 - [x] Historical ingestion can fetch from HyperSync when configured.
 - [x] Raw log archive writing is supported.
 - [x] Archive-only fetching is supported through `cli archive`, allowing raw range files to be stored without projection writes.
+- [x] Archive-only resume persists discovered resolver addresses in `resolvers.json` and can rebuild that cache from existing archive files.
 - [x] Raw archive replay is supported for projection rework without spending RPC or HyperSync credits.
 - [x] Backfill transport is selected explicitly with strict `BACKFILL_SOURCE=rpc|hypersync|raw`; there is no auto mode.
 - [x] Live indexing transport is selected explicitly with strict `INDEXING_SOURCE=http_rpc|wss`.
@@ -34,6 +35,7 @@ Last full verification: `cargo run -p cli -- schema-diff --output target/officia
 - [x] Makefile includes archive and raw replay helpers for repeatable projection testing.
 - [x] Raw archive replay was validated against a fresh dev Postgres database for a small ENS deployment range.
 - [x] Raw archives include manifest entries with SHA-256 checksums and can be inspected for coverage gaps.
+- [x] Archive status uses manifest coverage by default for large archives, with explicit checksum verification available through `--verify`.
 - [x] Raw replay verifies archive checksums when a manifest is present.
 - [x] A 1,000-block mainnet HyperSync backfill was run and archived for blocks `9380380..9381380`; archive status reports contiguous coverage and checksum verification.
 - [x] Source checkpoints are stored per indexed source.

@@ -23,6 +23,8 @@ When `ARCHIVE_BACKFILLS=true`, each fetched range is written to `RAW_ARCHIVE_DIR
 
 `cli archive` uses the same RPC/HyperSync fetch path but writes raw archive ranges without applying projection writes. During a continuous archive-only run it keeps resolver addresses discovered from registry events in memory, so resolver log fetching remains complete even though the database is not being projected yet. For complete historical archives, run archive-only from the first ENS source block before replaying from raw files.
 
+Archive-only also persists discovered resolver addresses in `resolvers.json` beside `manifest.json`. Resume loads this cache and refuses to continue if it is missing or stale for the requested resume block, because resolver log completeness depends on all previously discovered resolver addresses. `archive-resolvers` rebuilds that cache from existing range files when older archives were created before cache persistence existed.
+
 Live indexing runs behind a configurable confirmation depth and verifies parent hashes before applying new ranges. `INDEXING_SOURCE=http_rpc` uses `ETH_RPC_URL`; `INDEXING_SOURCE=wss` uses `ETH_WS_URL`. Current reorg repair uses a coarse indexed-state reset followed by canonical rebuild.
 
 ## Boundary Rules

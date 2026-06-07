@@ -3,11 +3,13 @@ use std::{cmp, collections::BTreeSet, path::PathBuf, str::FromStr};
 use alloy::{providers::ProviderBuilder, rpc::types::Log};
 use alloy_primitives::Address;
 use config::BackfillSource;
-use contracts::{EnsEvent, decode_fixed_source_log};
 
 use super::IngestService;
 use crate::{
-    archive::{ArchivedRange, write_range},
+    archive::{
+        ArchivedRange, add_resolver_from_log, load_resolver_cache, write_range,
+        write_resolver_cache,
+    },
     hypersync::{HypersyncBackfillClient, LogBatch},
     rpc::{
         fetch_block_meta_by_number, fetch_block_metadata, fetch_resolver_logs, fetch_source_logs,
@@ -50,7 +52,7 @@ impl IngestService {
             .await?;
         let hypersync = self.hypersync_backfill_client()?;
         let sources = fixed_sources()?;
-        let mut resolver_addresses = BTreeSet::new();
+        let mut resolver_addresses = self.archive_resolver_addresses(&archive_dir, from_block)?;
         let mut range_start = from_block;
 
         while range_start <= to_block {
@@ -82,18 +84,22 @@ impl IngestService {
                 batch.extend(source_batch);
             }
 
-            self.add_discovered_resolvers(&mut resolver_addresses, &batch.raw_logs)?;
-            let resolver_addresses = resolver_addresses.iter().copied().collect::<Vec<_>>();
+            add_discovered_resolvers(&mut resolver_addresses, &batch.raw_logs)?;
+            let query_resolver_addresses = resolver_addresses.iter().copied().collect::<Vec<_>>();
             let resolver_batch = match &hypersync {
                 Some(client) => {
                     client
-                        .fetch_resolver_logs(&resolver_addresses, range_start, range_end)
+                        .fetch_resolver_logs(&query_resolver_addresses, range_start, range_end)
                         .await?
                 }
                 None => {
-                    let logs =
-                        fetch_resolver_logs(&provider, &resolver_addresses, range_start, range_end)
-                            .await?;
+                    let logs = fetch_resolver_logs(
+                        &provider,
+                        &query_resolver_addresses,
+                        range_start,
+                        range_end,
+                    )
+                    .await?;
                     LogBatch {
                         raw_logs: logs
                             .into_iter()
@@ -134,6 +140,12 @@ impl IngestService {
                 checkpoint_sources,
             );
             let path = write_range(&archive_dir, &archive)?;
+            write_resolver_cache(
+                &archive_dir,
+                self.config.chain_id,
+                range_end,
+                &resolver_addresses,
+            )?;
             tracing::info!(
                 path = %path.display(),
                 from_block = range_start,
@@ -333,32 +345,46 @@ impl IngestService {
             }
         }
 
-        self.add_discovered_resolvers(&mut addresses, raw_logs)?;
+        add_discovered_resolvers(&mut addresses, raw_logs)?;
 
         Ok(addresses.into_iter().collect())
     }
 
-    fn add_discovered_resolvers(
+    fn archive_resolver_addresses(
         &self,
-        addresses: &mut BTreeSet<Address>,
-        raw_logs: &[(LogSource, Log)],
-    ) -> anyhow::Result<()> {
-        for (source, log) in raw_logs {
-            if !matches!(source, LogSource::Fixed(_)) {
-                continue;
-            }
+        archive_dir: &std::path::Path,
+        from_block: u64,
+    ) -> anyhow::Result<BTreeSet<Address>> {
+        let first_source_block = fixed_sources()?
+            .first()
+            .map_or(0, |source| source.start_block);
+        let Some((addresses, updated_to_block)) =
+            load_resolver_cache(archive_dir, self.config.chain_id)?
+        else {
+            anyhow::ensure!(
+                from_block <= first_source_block,
+                "resolver cache is missing for archive resume; run scripts/rebuild_resolver_cache_from_archive.sh before resuming from block {}",
+                from_block
+            );
+            return Ok(BTreeSet::new());
+        };
 
-            let Ok(EnsEvent::RegistryNewResolver { resolver, .. }) =
-                decode_fixed_source_log(source.fixed_source()?, log)
-            else {
-                continue;
-            };
-
-            if resolver != Address::ZERO {
-                addresses.insert(resolver);
-            }
-        }
-
-        Ok(())
+        anyhow::ensure!(
+            updated_to_block.saturating_add(1) >= from_block,
+            "resolver cache only covers through block {}; run scripts/rebuild_resolver_cache_from_archive.sh before resuming from block {}",
+            updated_to_block,
+            from_block
+        );
+        Ok(addresses)
     }
+}
+
+fn add_discovered_resolvers(
+    addresses: &mut BTreeSet<Address>,
+    raw_logs: &[(LogSource, Log)],
+) -> anyhow::Result<()> {
+    for (source, log) in raw_logs {
+        add_resolver_from_log(addresses, *source, log)?;
+    }
+    Ok(())
 }

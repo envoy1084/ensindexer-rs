@@ -62,8 +62,14 @@ BACKFILL_SOURCE=raw make raw-backfill BACKFILL_FROM=9380380 BACKFILL_TO=9381380
 ```
 
 `make db-reset` deletes the local Postgres compose volume. Use it only for disposable development databases.
-`make archive-status` verifies archive checksums and reports coverage gaps before replay.
-For a complete archive-only run, start from `3327417` so resolver discovery is complete across the continuous fetch. After the archive is complete, use `BACKFILL_SOURCE=raw` or `make raw-backfill` to project from those files.
+`make archive-status` reads the manifest only, so it stays fast for large archives. Use `make archive-status-verify` when you explicitly want the slower checksum pass across range files.
+For a complete archive-only run, start from `3327417` so resolver discovery is complete. Archive-only writes `resolvers.json` next to `manifest.json` and updates it after each completed range, so a later resume can reload discovered resolver addresses. If you created archive files before `resolvers.json` existed, rebuild it once before resuming:
+
+```bash
+RAW_ARCHIVE_DIR=.raw-archive-full BACKFILL_FROM=3327417 scripts/rebuild_resolver_cache_from_archive.sh
+```
+
+After the archive is complete, use `BACKFILL_SOURCE=raw` or `make raw-backfill` to project from those files.
 
 Postgres runs through `compose.yml` using `postgres:17`. The default compose credentials match `.env.example`.
 

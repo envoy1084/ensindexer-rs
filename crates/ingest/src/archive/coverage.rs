@@ -1,15 +1,13 @@
 use std::path::Path;
 
-use super::{
-    manifest::{ArchiveManifestRange, load_manifest},
-    verify_manifest_range,
-};
+use super::manifest::{ArchiveManifestRange, load_manifest};
 
 #[derive(Debug, Clone)]
 pub struct ArchiveStatus {
     pub chain_id: u64,
     pub ranges: Vec<ArchiveManifestRange>,
     pub gaps: Vec<ArchiveGap>,
+    pub verified: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -29,8 +27,17 @@ pub fn inspect_archive(
     expected_chain_id: u64,
     from_block: Option<u64>,
     to_block: Option<u64>,
+    verify: bool,
 ) -> anyhow::Result<ArchiveStatus> {
-    let mut ranges = load_manifest(dir)?
+    let manifest = load_manifest(dir)?;
+    anyhow::ensure!(
+        manifest.chain_id == 0 || manifest.chain_id == expected_chain_id,
+        "archive manifest chain_id {} does not match configured chain_id {}",
+        manifest.chain_id,
+        expected_chain_id
+    );
+
+    let mut ranges = manifest
         .ranges
         .into_iter()
         .filter(|range| {
@@ -40,14 +47,17 @@ pub fn inspect_archive(
         .collect::<Vec<_>>();
 
     ranges.sort_by_key(|range| range.from_block);
-    for range in &ranges {
-        verify_manifest_range(dir, expected_chain_id, range)?;
+    if verify {
+        for range in &ranges {
+            super::verify_manifest_range(dir, expected_chain_id, range)?;
+        }
     }
 
     Ok(ArchiveStatus {
         chain_id: expected_chain_id,
         gaps: coverage_gaps(&ranges, from_block, to_block),
         ranges,
+        verified: verify,
     })
 }
 

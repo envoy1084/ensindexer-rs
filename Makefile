@@ -1,4 +1,4 @@
-.PHONY: db-up db-down db-reset db-logs docker-build docker-run migrate serve sandbox status reset backfill archive-only archive-backfill raw-backfill archive-status test lint check
+.PHONY: db-up db-down db-reset db-logs docker-build docker-run migrate serve sandbox status reset backfill archive-only archive-backfill raw-backfill archive-status archive-status-verify archive-resolvers test lint check
 
 BACKFILL_FROM ?= 3327417
 BACKFILL_TO ?= 9381380
@@ -57,6 +57,12 @@ raw-backfill:
 
 archive-status:
 	RAW_ARCHIVE_DIR=$(RAW_ARCHIVE_DIR) cargo run -p cli -- archive-status --from $(BACKFILL_FROM) --to $(BACKFILL_TO)
+
+archive-status-verify:
+	RAW_ARCHIVE_DIR=$(RAW_ARCHIVE_DIR) cargo run -p cli -- archive-status --from $(BACKFILL_FROM) --to $(BACKFILL_TO) --verify
+
+archive-resolvers:
+	RAW_ARCHIVE_DIR=$(RAW_ARCHIVE_DIR) BACKFILL_FROM=$(BACKFILL_FROM) BACKFILL_TO=$(BACKFILL_TO) scripts/rebuild_resolver_cache_from_archive.sh
 
 test:
 	cargo test --workspace

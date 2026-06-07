@@ -1,15 +1,18 @@
 mod coverage;
 mod manifest;
 mod model;
+mod resolvers;
 
 use std::path::{Path, PathBuf};
 
 pub use coverage::{ArchiveGap, ArchiveStatus, inspect_archive};
 pub use manifest::ArchiveManifestRange;
 pub(crate) use model::ArchivedRange;
+pub use resolvers::{ResolverCacheStatus, rebuild_resolver_cache};
+pub(crate) use resolvers::{add_resolver_from_log, load_resolver_cache, write_resolver_cache};
 
 use self::manifest::{
-    upsert_manifest_range, verify_manifest_checksum, verify_manifest_range_checksum,
+    load_manifest, upsert_manifest_range, verify_manifest_checksum, verify_manifest_range_checksum,
 };
 
 pub(crate) fn write_range(dir: &Path, range: &ArchivedRange) -> anyhow::Result<PathBuf> {
@@ -64,22 +67,15 @@ pub(crate) fn read_ranges(
 }
 
 pub(crate) fn available_bounds(dir: &Path, expected_chain_id: u64) -> anyhow::Result<(u64, u64)> {
-    let mut from = None::<u64>;
-    let mut to = None::<u64>;
-
-    for entry in std::fs::read_dir(dir.join("ranges"))? {
-        let entry = entry?;
-        if entry.path().extension().and_then(|ext| ext.to_str()) != Some("json") {
-            continue;
-        }
-
-        let bytes = std::fs::read(entry.path())?;
-        verify_manifest_checksum(dir, &entry.path(), &bytes)?;
-        let range: ArchivedRange = serde_json::from_slice(&bytes)?;
-        range.validate(expected_chain_id)?;
-        from = Some(from.map_or(range.from_block, |current| current.min(range.from_block)));
-        to = Some(to.map_or(range.to_block, |current| current.max(range.to_block)));
-    }
+    let manifest = load_manifest(dir)?;
+    anyhow::ensure!(
+        manifest.chain_id == 0 || manifest.chain_id == expected_chain_id,
+        "archive manifest chain_id {} does not match configured chain_id {}",
+        manifest.chain_id,
+        expected_chain_id
+    );
+    let from = manifest.ranges.iter().map(|range| range.from_block).min();
+    let to = manifest.ranges.iter().map(|range| range.to_block).max();
 
     match (from, to) {
         (Some(from), Some(to)) => Ok((from, to)),
