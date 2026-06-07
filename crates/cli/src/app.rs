@@ -24,33 +24,16 @@ enum Command {
         #[arg(long)]
         yes: bool,
     },
-    Backfill {
-        #[arg(long)]
-        from: Option<u64>,
-        #[arg(long)]
-        to: Option<u64>,
-    },
+    Backfill,
     Archive {
-        #[arg(long)]
-        from: Option<u64>,
-        #[arg(long)]
-        to: Option<u64>,
         #[arg(long)]
         archive_dir: Option<PathBuf>,
     },
     Replay {
         #[arg(long)]
-        from: u64,
-        #[arg(long)]
-        to: u64,
-        #[arg(long)]
         archive_dir: Option<PathBuf>,
     },
     ArchiveStatus {
-        #[arg(long)]
-        from: Option<u64>,
-        #[arg(long)]
-        to: Option<u64>,
         #[arg(long)]
         archive_dir: Option<PathBuf>,
         #[arg(long)]
@@ -58,9 +41,9 @@ enum Command {
     },
     ArchiveResolvers {
         #[arg(long)]
-        from: Option<u64>,
-        #[arg(long)]
-        to: Option<u64>,
+        archive_dir: Option<PathBuf>,
+    },
+    ArchiveConvertBinary {
         #[arg(long)]
         archive_dir: Option<PathBuf>,
     },
@@ -129,41 +112,31 @@ pub async fn run() -> anyhow::Result<()> {
             storage.maintenance().reset_indexed_data().await?;
             tracing::warn!("indexed data reset complete");
         }
-        Command::Backfill { from, to } => {
+        Command::Backfill => {
             let config = AppConfig::from_env()?;
             let storage = replay_storage(&config).await?;
             storage.run_migrations().await?;
             IngestService::new(config, storage)
-                .run_configured_backfill(from, to)
+                .run_configured_backfill()
                 .await?;
         }
-        Command::Archive {
-            from,
-            to,
-            archive_dir,
-        } => {
+        Command::Archive { archive_dir } => {
             let config = AppConfig::from_env()?;
             let storage = Storage::connect(&config.database_url).await?;
             storage.run_migrations().await?;
             IngestService::new(config, storage)
-                .run_configured_archive(from, to, archive_dir)
+                .run_configured_archive(archive_dir)
                 .await?;
         }
-        Command::Replay {
-            from,
-            to,
-            archive_dir,
-        } => {
+        Command::Replay { archive_dir } => {
             let config = AppConfig::from_env()?;
             let storage = Storage::connect_with_max_connections(&config.database_url, 1).await?;
             storage.run_migrations().await?;
             IngestService::new(config, storage)
-                .replay_archive_range(from, to, archive_dir)
+                .replay_configured_archive(archive_dir)
                 .await?;
         }
         Command::ArchiveStatus {
-            from,
-            to,
             archive_dir,
             verify,
         } => {
@@ -171,19 +144,16 @@ pub async fn run() -> anyhow::Result<()> {
             let archive_dir = archive_dir
                 .or(config.raw_archive_dir)
                 .ok_or_else(|| anyhow::anyhow!("RAW_ARCHIVE_DIR or --archive-dir is required"))?;
-            let status = ingest::inspect_archive(&archive_dir, config.chain_id, from, to, verify)?;
+            let status =
+                ingest::inspect_archive(&archive_dir, config.chain_id, None, None, verify)?;
             print_archive_status(status);
         }
-        Command::ArchiveResolvers {
-            from,
-            to,
-            archive_dir,
-        } => {
+        Command::ArchiveResolvers { archive_dir } => {
             let config = AppConfig::from_env()?;
             let archive_dir = archive_dir
                 .or(config.raw_archive_dir)
                 .ok_or_else(|| anyhow::anyhow!("RAW_ARCHIVE_DIR or --archive-dir is required"))?;
-            let status = ingest::rebuild_resolver_cache(&archive_dir, config.chain_id, from, to)?;
+            let status = ingest::rebuild_resolver_cache(&archive_dir, config.chain_id, None, None)?;
             println!("resolver cache path: {}", status.path.display());
             println!("resolver cache chain_id: {}", status.chain_id);
             println!(
@@ -191,6 +161,14 @@ pub async fn run() -> anyhow::Result<()> {
                 status.updated_to_block
             );
             println!("resolver cache addresses: {}", status.addresses);
+        }
+        Command::ArchiveConvertBinary { archive_dir } => {
+            let config = AppConfig::from_env()?;
+            let archive_dir = archive_dir
+                .or(config.raw_archive_dir)
+                .ok_or_else(|| anyhow::anyhow!("RAW_ARCHIVE_DIR or --archive-dir is required"))?;
+            let converted = ingest::convert_json_archive_to_binary(&archive_dir, config.chain_id)?;
+            println!("converted archive ranges: {converted}");
         }
         Command::Index => {
             let config = AppConfig::from_env()?;

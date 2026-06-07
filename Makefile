@@ -1,7 +1,5 @@
-.PHONY: db-up db-down db-reset db-logs docker-build docker-run migrate serve sandbox status reset backfill archive-only archive-backfill raw-backfill archive-status archive-status-verify archive-resolvers test lint check
+.PHONY: db-up db-down db-reset db-logs docker-build docker-run migrate serve sandbox status reset backfill archive-only archive-backfill raw-backfill archive-status archive-status-verify archive-resolvers archive-convert-binary test lint check
 
-BACKFILL_FROM ?= 3327417
-BACKFILL_TO ?= 9381380
 RAW_ARCHIVE_DIR ?= .raw-archive
 IMAGE ?= ensindexer:local
 ORBSTACK_BIN ?= /Applications/OrbStack.app/Contents/MacOS/xbin
@@ -44,25 +42,28 @@ reset:
 	cargo run -p cli -- reset --yes
 
 backfill:
-	cargo run -p cli -- backfill --from $(BACKFILL_FROM) --to $(BACKFILL_TO)
+	cargo run -p cli -- backfill
 
 archive-only:
-	RAW_ARCHIVE_DIR=$(RAW_ARCHIVE_DIR) cargo run -p cli -- archive --from $(BACKFILL_FROM) --to $(BACKFILL_TO)
+	RAW_ARCHIVE_DIR=$(RAW_ARCHIVE_DIR) cargo run -p cli -- archive
 
 archive-backfill:
-	ARCHIVE_BACKFILLS=true RAW_ARCHIVE_DIR=$(RAW_ARCHIVE_DIR) cargo run -p cli -- backfill --from $(BACKFILL_FROM) --to $(BACKFILL_TO)
+	ARCHIVE_BACKFILLS=true RAW_ARCHIVE_DIR=$(RAW_ARCHIVE_DIR) cargo run -p cli -- backfill
 
 raw-backfill:
-	BACKFILL_SOURCE=raw RAW_ARCHIVE_DIR=$(RAW_ARCHIVE_DIR) cargo run -p cli -- backfill --from $(BACKFILL_FROM) --to $(BACKFILL_TO)
+	BACKFILL_SOURCE=raw RAW_ARCHIVE_DIR=$(RAW_ARCHIVE_DIR) cargo run -p cli -- backfill
 
 archive-status:
-	RAW_ARCHIVE_DIR=$(RAW_ARCHIVE_DIR) cargo run -p cli -- archive-status --from $(BACKFILL_FROM) --to $(BACKFILL_TO)
+	RAW_ARCHIVE_DIR=$(RAW_ARCHIVE_DIR) cargo run -p cli -- archive-status
 
 archive-status-verify:
-	RAW_ARCHIVE_DIR=$(RAW_ARCHIVE_DIR) cargo run -p cli -- archive-status --from $(BACKFILL_FROM) --to $(BACKFILL_TO) --verify
+	RAW_ARCHIVE_DIR=$(RAW_ARCHIVE_DIR) cargo run -p cli -- archive-status --verify
 
 archive-resolvers:
-	RAW_ARCHIVE_DIR=$(RAW_ARCHIVE_DIR) BACKFILL_FROM=$(BACKFILL_FROM) BACKFILL_TO=$(BACKFILL_TO) scripts/rebuild_resolver_cache_from_archive.sh
+	RAW_ARCHIVE_DIR=$(RAW_ARCHIVE_DIR) cargo run -p cli -- archive-resolvers
+
+archive-convert-binary:
+	RAW_ARCHIVE_DIR=$(RAW_ARCHIVE_DIR) cargo run -p cli -- archive-convert-binary
 
 test:
 	cargo test --workspace

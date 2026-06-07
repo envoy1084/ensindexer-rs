@@ -355,7 +355,7 @@ Backfill algorithm:
 for block_range in planned_ranges:
   fetch all source logs for the range
   fetch block timestamps for touched blocks
-  optionally write raw archive range JSON
+  optionally write raw archive range binary
   decode logs
   sort by block_number, transaction_index, log_index
   group by block
@@ -377,9 +377,9 @@ Resolver wildcard ingestion is the largest stream. Start with small block ranges
 
 Raw archive/replay:
 
-- `RAW_ARCHIVE_DIR` writes fetched logs and block metadata to filesystem JSON files keyed by inclusive range.
+- `RAW_ARCHIVE_DIR` writes fetched logs and block metadata to filesystem binary files keyed by inclusive range.
 - Archive files store chain ID, range bounds, raw logs with source tags, block metadata, and checkpoint source names.
-- `cli replay --from <block> --to <block>` reads contiguous archive files and applies the same decode/projection/checkpoint path as fetched backfill.
+- `cli replay` reads contiguous archive files from database checkpoints through the last archived range and applies the same decode/projection/checkpoint path as fetched backfill.
 - Projection development should prefer archive replay after the first fetch so compatibility fixes do not repeatedly spend RPC or HyperSync credits.
 
 ## Step 8: Live Indexing and Reorg Handling
@@ -592,8 +592,6 @@ Runtime config:
 | `ENABLE_LIVE_INDEXING`       | run live confirmed-block indexing in `serve`                |
 | `BACKFILL_SOURCE`            | strict historical source selector: `rpc`, `hypersync`, or `raw` |
 | `INDEXING_SOURCE`            | strict live source selector: `http_rpc` or `wss`            |
-| `BACKFILL_FROM`              | optional startup/CLI backfill start; defaults to earliest ENS source block |
-| `BACKFILL_TO`                | optional startup/CLI backfill end; defaults to latest RPC block or raw archive end |
 | `ARCHIVE_BACKFILLS`          | write fetched backfill ranges to `RAW_ARCHIVE_DIR` when true |
 | `RAW_ARCHIVE_DIR`            | archive directory used for backfill writes and raw replay   |
 | `CHAIN_ID`                   | chain selector                                              |
@@ -609,7 +607,7 @@ Implement `cli` so local development and production jobs use the same code paths
 
 ```text
 cli migrate
-cli backfill --from <block> --to <block>
+cli backfill
 cli index
 cli serve
 cli status

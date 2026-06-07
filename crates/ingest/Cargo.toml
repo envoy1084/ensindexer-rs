@@ -10,6 +10,7 @@ alloy.workspace = true
 alloy-network-primitives.workspace = true
 alloy-primitives.workspace = true
 anyhow.workspace = true
+bincode.workspace = true
 config.workspace = true
 contracts.workspace = true
 hypersync-client.workspace = true

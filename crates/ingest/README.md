@@ -12,16 +12,16 @@ Historical and live chain ingestion crate.
 - `sources`: fixed source definitions, start blocks, and topic sets.
 - `rpc`: Alloy provider helpers for logs and block metadata.
 - `hypersync`: Envio HyperSync historical log and block metadata adapter.
-- `archive`: filesystem JSON archives for replaying fetched ranges.
+- `archive`: filesystem binary archives for replaying fetched ranges.
 - `decode`: conversion from raw logs plus metadata into projection-ready events.
 
 ## Architecture Notes
 
-Backfills fetch bounded ranges, merge logs from all active sources, sort by canonical chain order, and apply decoded events deterministically. `BACKFILL_SOURCE` is explicit and strict: `rpc` uses Alloy JSON-RPC, `hypersync` uses Envio HyperSync and requires `ENVIO_API_KEY`, and `raw` replays archive JSON files. There is no automatic source selection.
+Backfills resume from database source checkpoints, merge logs from all active sources, sort by canonical chain order, and apply decoded events deterministically. `BACKFILL_SOURCE` is explicit and strict: `rpc` uses Alloy JSON-RPC, `hypersync` uses Envio HyperSync and requires `ENVIO_API_KEY`, and `raw` replays archive files. There is no automatic source selection.
 
-When `ARCHIVE_BACKFILLS=true`, each fetched range is written to `RAW_ARCHIVE_DIR/ranges/{from}-{to}.json` after log and block metadata fetching. A manifest records file paths, byte lengths, log counts, and SHA-256 checksums. Replay reads those range files, verifies manifest checksums when present, and runs the same decode/projection/checkpoint path as live backfill without touching RPC or HyperSync. This is intended for projection development: archive once, reset indexed state, change projection code, then replay until the output matches the official subgraph.
+When `ARCHIVE_BACKFILLS=true`, each fetched range is written to `RAW_ARCHIVE_DIR/ranges/{from}-{to}.bin` after log and block metadata fetching. A manifest records file paths, byte lengths, log counts, and SHA-256 checksums. Replay reads those range files, verifies manifest checksums when present, and runs the same decode/projection/checkpoint path as live backfill without touching RPC or HyperSync. Existing `.json` range files remain readable for migration; `archive-convert-binary` converts them to `.bin` and updates the manifest. This is intended for projection development: archive once, reset indexed state, change projection code, then replay until the output matches the official subgraph.
 
-Raw replay streams one manifest range file at a time and applies each range inside a single Postgres transaction with local `synchronous_commit=off`. The CLI uses a single-connection pool for raw replay so all projection statements in a range share that transaction. This keeps memory bounded by one archive file and reduces per-statement commit/fsync overhead during production replays.
+Raw replay prefetches one manifest range file while applying the current range and applies each range inside a single Postgres transaction with local `synchronous_commit=off`. The CLI uses a single-connection pool for raw replay so all projection statements in a range share that transaction. This keeps memory bounded by two archive files and reduces per-statement commit/fsync overhead during production replays.
 
 Before raw replay starts, secondary query indexes are dropped and recreated after replay finishes. Primary keys, unique constraints, and foreign-key enforcement remain intact. This makes bulk replay substantially cheaper because Postgres does not maintain every API query index for each inserted event and snapshot row.
 
@@ -29,7 +29,7 @@ If replay fails after dropping indexes, the replay service attempts to recreate 
 
 `cli archive` uses the same RPC/HyperSync fetch path but writes raw archive ranges without applying projection writes. During a continuous archive-only run it keeps resolver addresses discovered from registry events in memory, so resolver log fetching remains complete even though the database is not being projected yet. For complete historical archives, run archive-only from the first ENS source block before replaying from raw files.
 
-Archive-only also persists discovered resolver addresses in `resolvers.json` beside `manifest.json`. Resume loads this cache and refuses to continue if it is missing or stale for the requested resume block, because resolver log completeness depends on all previously discovered resolver addresses. `archive-resolvers` rebuilds that cache from existing range files when older archives were created before cache persistence existed.
+Archive-only also persists discovered resolver addresses in `resolvers.json` beside `manifest.json`. Resume loads this cache and refuses to continue if it is missing or stale for the computed resume block, because resolver log completeness depends on all previously discovered resolver addresses. `archive-resolvers` rebuilds that cache from existing range files when older archives were created before cache persistence existed.
 
 Live indexing runs behind a configurable confirmation depth and verifies parent hashes before applying new ranges. `INDEXING_SOURCE=http_rpc` uses `ETH_RPC_URL`; `INDEXING_SOURCE=wss` uses `ETH_WS_URL`. Current reorg repair uses a coarse indexed-state reset followed by canonical rebuild.
 

@@ -1,9 +1,23 @@
 use std::{path::PathBuf, time::Instant};
 
 use super::IngestService;
-use crate::archive::{range_entries, read_range_entry};
+use crate::archive::{ArchiveManifestRange, ArchivedRange, range_entries, read_range_entry};
 
 impl IngestService {
+    pub async fn replay_configured_archive(
+        &self,
+        archive_dir: Option<PathBuf>,
+    ) -> anyhow::Result<()> {
+        let archive_dir = archive_dir
+            .or_else(|| self.config.raw_archive_dir.clone())
+            .ok_or_else(|| {
+                anyhow::anyhow!("RAW_ARCHIVE_DIR or --archive-dir is required for replay")
+            })?;
+        let (from_block, to_block) = self.resolve_archive_replay_range(&archive_dir).await?;
+        self.replay_archive_range(from_block, to_block, Some(archive_dir))
+            .await
+    }
+
     pub async fn replay_archive_range(
         &self,
         from_block: u64,
@@ -59,40 +73,72 @@ impl IngestService {
     ) -> anyhow::Result<()> {
         let entries = range_entries(archive_dir, self.config.chain_id, from_block, to_block)?;
         let total_ranges = entries.len();
-        for (index, entry) in entries.iter().enumerate() {
-            let started_at = Instant::now();
-            tracing::info!(
-                archive_file = %entry.file,
-                from_block = entry.from_block,
-                to_block = entry.to_block,
-                logs = entry.logs,
-                bytes = entry.bytes,
-                range_index = index + 1,
-                total_ranges,
-                "replaying raw archive range"
-            );
+        let clear_entity_cache = self.storage.ensure_entity_cache()?;
+        let result = async {
+            let mut next_range = entries.first().cloned().map(|entry| {
+                spawn_range_read(archive_dir.to_path_buf(), self.config.chain_id, entry)
+            });
 
-            let range = read_range_entry(archive_dir, self.config.chain_id, entry)?;
-            let range_start = range.from_block;
-            let range_end = range.to_block;
-            let checkpoint_sources = range.checkpoint_sources.clone();
-            let (raw_logs, block_meta) = range.into_parts();
+            for (index, entry) in entries.iter().enumerate() {
+                let started_at = Instant::now();
+                tracing::info!(
+                    archive_file = %entry.file,
+                    from_block = entry.from_block,
+                    to_block = entry.to_block,
+                    logs = entry.logs,
+                    bytes = entry.bytes,
+                    range_index = index + 1,
+                    total_ranges,
+                    "replaying raw archive range"
+                );
 
-            self.apply_raw_range_transactional(range_end, raw_logs, block_meta, checkpoint_sources)
+                let range = next_range
+                    .take()
+                    .ok_or_else(|| anyhow::anyhow!("missing prefetched archive range"))?
+                    .await??;
+                next_range = entries.get(index + 1).cloned().map(|entry| {
+                    spawn_range_read(archive_dir.to_path_buf(), self.config.chain_id, entry)
+                });
+                let range_start = range.from_block;
+                let range_end = range.to_block;
+                let checkpoint_sources = range.checkpoint_sources.clone();
+                let (raw_logs, block_meta) = range.into_parts();
+
+                self.apply_raw_range_transactional(
+                    range_end,
+                    raw_logs,
+                    block_meta,
+                    checkpoint_sources,
+                )
                 .await?;
 
-            let elapsed = started_at.elapsed();
-            tracing::info!(
-                archive_file = %entry.file,
-                from_block = range_start,
-                to_block = range_end,
-                range_index = index + 1,
-                total_ranges,
-                elapsed_ms = elapsed.as_millis(),
-                "replayed raw archive range"
-            );
-        }
+                let elapsed = started_at.elapsed();
+                tracing::info!(
+                    archive_file = %entry.file,
+                    from_block = range_start,
+                    to_block = range_end,
+                    range_index = index + 1,
+                    total_ranges,
+                    elapsed_ms = elapsed.as_millis(),
+                    "replayed raw archive range"
+                );
+            }
 
-        Ok(())
+            Ok(())
+        }
+        .await;
+
+        if clear_entity_cache {
+            self.storage.clear_entity_cache()?;
+        }
+        result
     }
+}
+
+fn spawn_range_read(
+    archive_dir: std::path::PathBuf,
+    chain_id: u64,
+    entry: ArchiveManifestRange,
+) -> tokio::task::JoinHandle<anyhow::Result<ArchivedRange>> {
+    tokio::task::spawn_blocking(move || read_range_entry(&archive_dir, chain_id, &entry))
 }

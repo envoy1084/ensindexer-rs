@@ -125,6 +125,18 @@ impl Storage {
         Ok(())
     }
 
+    pub fn ensure_entity_cache(&self) -> StorageResult<bool> {
+        let mut cache = self
+            .entity_cache
+            .lock()
+            .map_err(|_| StorageError::EntityCachePoisoned)?;
+        if cache.is_some() {
+            return Ok(false);
+        }
+        *cache = Some(EntityCache::default());
+        Ok(true)
+    }
+
     pub fn clear_entity_cache(&self) -> StorageResult<()> {
         let mut cache = self
             .entity_cache

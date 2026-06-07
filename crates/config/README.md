@@ -12,7 +12,7 @@ Runtime configuration crate.
 
 ## Architecture Notes
 
-Configuration is parsed once at command startup and then passed into dependent crates. `DATABASE_URL` and `ETH_RPC_URL` are required. `ETH_WS_URL` is required only when `INDEXING_SOURCE=wss`. Historical backfill transport is controlled by strict `BACKFILL_SOURCE=rpc|hypersync|raw`; there is no automatic HyperSync fallback. `HYPERSYNC_URL` defaults to the Ethereum mainnet endpoint and `ENVIO_API_KEY` is required only for HyperSync. Serve-time work is controlled by `ENABLE_BACKFILL` and `ENABLE_LIVE_INDEXING`. `BACKFILL_FROM` and `BACKFILL_TO` are optional and default to the first ENS source block and latest available target. `ARCHIVE_BACKFILLS=true` plus `RAW_ARCHIVE_DIR` writes filesystem raw-log archives for replaying projection changes without chain IO. Apollo Sandbox is always served by the HTTP server.
+Configuration is parsed once at command startup and then passed into dependent crates. `DATABASE_URL` and `ETH_RPC_URL` are required. `ETH_WS_URL` is required only when `INDEXING_SOURCE=wss`. Historical backfill transport is controlled by strict `BACKFILL_SOURCE=rpc|hypersync|raw`; there is no automatic HyperSync fallback. `HYPERSYNC_URL` defaults to the Ethereum mainnet endpoint and `ENVIO_API_KEY` is required only for HyperSync. Serve-time work is controlled by `ENABLE_BACKFILL` and `ENABLE_LIVE_INDEXING`. Historical backfill ranges are resume-only: RPC/HyperSync/raw replay start from database source checkpoints, while archive-only fetching starts after the last archived range. `ARCHIVE_BACKFILLS=true` plus `RAW_ARCHIVE_DIR` writes filesystem raw-log archives for replaying projection changes without chain IO. Apollo Sandbox is always served by the HTTP server.
 
 ## Boundary Rules
 

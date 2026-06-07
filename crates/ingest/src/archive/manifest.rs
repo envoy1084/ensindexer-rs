@@ -94,7 +94,7 @@ pub(crate) fn verify_manifest_range_checksum(
         entry.bytes,
         bytes.len()
     );
-    let range: ArchivedRange = serde_json::from_slice(&bytes)?;
+    let range = super::decode_range_entry(entry, &bytes)?;
     range.validate(expected_chain_id)?;
     anyhow::ensure!(
         range.from_block == entry.from_block && range.to_block == entry.to_block,
@@ -136,23 +136,44 @@ fn build_manifest_from_ranges(dir: &Path) -> anyhow::Result<ArchiveManifest> {
 
     for entry in std::fs::read_dir(ranges_dir)? {
         let entry = entry?;
-        if entry.path().extension().and_then(|ext| ext.to_str()) != Some("json") {
+        let path = entry.path();
+        let extension = path.extension().and_then(|ext| ext.to_str());
+        if !matches!(extension, Some("bin" | "json")) {
             continue;
         }
-        let bytes = std::fs::read(entry.path())?;
-        let range: ArchivedRange = serde_json::from_slice(&bytes)?;
-        chain_id = Some(chain_id.unwrap_or(range.chain_id));
-        let file = relative_archive_path(dir, &entry.path())?;
-        ranges.push(ArchiveManifestRange {
-            from_block: range.from_block,
-            to_block: range.to_block,
+        let bytes = std::fs::read(&path)?;
+        let file = relative_archive_path(dir, &path)?;
+        let entry = ArchiveManifestRange {
+            from_block: 0,
+            to_block: 0,
             file,
             sha256: sha256_hex(&bytes),
             bytes: bytes.len().try_into()?,
+            logs: 0,
+        };
+        let range = super::decode_range_entry(&entry, &bytes)?;
+        chain_id = Some(chain_id.unwrap_or(range.chain_id));
+        ranges.push(ArchiveManifestRange {
+            from_block: range.from_block,
+            to_block: range.to_block,
+            file: entry.file,
+            sha256: entry.sha256,
+            bytes: entry.bytes,
             logs: range.logs.len(),
         });
     }
     ranges.sort_by_key(|range| range.from_block);
+    ranges.dedup_by(|left, right| {
+        if left.from_block == right.from_block && left.to_block == right.to_block {
+            let keep_left = left.file.ends_with(".bin");
+            if !keep_left {
+                *left = right.clone();
+            }
+            true
+        } else {
+            false
+        }
+    });
     Ok(ArchiveManifest {
         version: MANIFEST_VERSION,
         chain_id: chain_id.unwrap_or_default(),

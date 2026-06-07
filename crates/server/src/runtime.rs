@@ -47,15 +47,13 @@ async fn run_enabled_backfill(config: &AppConfig, storage: &Storage) -> anyhow::
     }
 
     tracing::info!(
-        from_block = ?config.backfill_from,
-        to_block = ?config.backfill_to,
         source = ?config.backfill_source,
         archive_backfills = config.archive_backfills,
-        "running configured startup backfill"
+        "running resumable startup backfill"
     );
 
     IngestService::new(config.clone(), storage.clone())
-        .run_configured_backfill(config.backfill_from, config.backfill_to)
+        .run_configured_backfill()
         .await
 }
 

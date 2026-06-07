@@ -10,11 +10,12 @@ Operational command-line entrypoint for the ENS indexer.
 
 - `serve`: run migrations and start the Axum GraphQL API.
 - `migrate`: apply SQLx migrations.
-- `backfill --from <block> --to <block>`: index a bounded historical range.
-- `archive --from <block> --to <block> [--archive-dir <dir>]`: fetch raw chain data into archive files without applying projection writes.
-- `archive-resolvers [--from <block>] [--to <block>] [--archive-dir <dir>]`: rebuild `resolvers.json` from existing raw archive range files.
-- `replay --from <block> --to <block> [--archive-dir <dir>]`: rebuild a bounded range from raw JSON archives without chain IO.
-- `archive-status [--from <block>] [--to <block>] [--archive-dir <dir>] [--verify]`: report archive coverage gaps from the manifest, optionally verifying range checksums.
+- `backfill`: resume historical indexing from database source checkpoints to latest.
+- `archive [--archive-dir <dir>]`: resume archive-only fetching from the last archived block to latest.
+- `archive-resolvers [--archive-dir <dir>]`: rebuild `resolvers.json` from existing raw archive range files.
+- `archive-convert-binary [--archive-dir <dir>]`: convert existing JSON archive ranges to the binary archive format and update the manifest.
+- `replay [--archive-dir <dir>]`: replay archive ranges from database source checkpoints to the last archived block without chain IO.
+- `archive-status [--archive-dir <dir>] [--verify]`: report archive coverage gaps from the manifest, optionally verifying range checksums.
 - `index`: run the confirmation-depth live indexing loop.
 - `status`: print latest stored block and source checkpoints.
 - `reset --yes`: clear indexed projection/event/checkpoint state for rebuilds.

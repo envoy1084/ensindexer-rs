@@ -6,8 +6,8 @@ pub mod service;
 pub mod sources;
 
 pub use archive::{
-    ArchiveGap, ArchiveManifestRange, ArchiveStatus, ResolverCacheStatus, inspect_archive,
-    rebuild_resolver_cache,
+    ArchiveGap, ArchiveManifestRange, ArchiveStatus, ResolverCacheStatus,
+    convert_json_archive_to_binary, inspect_archive, rebuild_resolver_cache,
 };
 pub use service::*;
 pub use sources::{FixedSource, fixed_sources};

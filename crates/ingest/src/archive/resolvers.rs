@@ -8,7 +8,7 @@ use contracts::{EnsEvent, decode_fixed_source_log};
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    archive::{manifest::load_manifest, model::ArchivedRange},
+    archive::{manifest::load_manifest, read_range_entry},
     sources::LogSource,
 };
 
@@ -89,9 +89,7 @@ pub fn rebuild_resolver_cache(
 
     ranges.sort_by_key(|range| range.from_block);
     for range in ranges {
-        let bytes = std::fs::read(dir.join(&range.file))?;
-        let archived: ArchivedRange = serde_json::from_slice(&bytes)?;
-        archived.validate(expected_chain_id)?;
+        let archived = read_range_entry(dir, expected_chain_id, &range)?;
         for (source, log) in archived.into_parts().0 {
             add_resolver_from_log(&mut addresses, source, &log)?;
         }

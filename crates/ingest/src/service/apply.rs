@@ -35,20 +35,23 @@ impl IngestService {
             }
             return Err(error.into());
         }
-        if let Err(error) = self.storage.begin_entity_cache() {
-            if let Err(clear_error) = self.storage.clear_change_buffer() {
-                tracing::error!(%clear_error, "failed to clear replay change buffer");
+        let clear_entity_cache_on_success = match self.storage.ensure_entity_cache() {
+            Ok(started) => started,
+            Err(error) => {
+                if let Err(clear_error) = self.storage.clear_change_buffer() {
+                    tracing::error!(%clear_error, "failed to clear replay change buffer");
+                }
+                if let Err(clear_error) = self.storage.clear_event_buffer() {
+                    tracing::error!(%clear_error, "failed to clear replay event buffer");
+                }
+                if let Err(rollback_error) =
+                    sqlx::query("rollback").execute(self.storage.pool()).await
+                {
+                    tracing::error!(%rollback_error, "failed to roll back raw replay range");
+                }
+                return Err(error.into());
             }
-            if let Err(clear_error) = self.storage.clear_event_buffer() {
-                tracing::error!(%clear_error, "failed to clear replay event buffer");
-            }
-            if let Err(rollback_error) = sqlx::query("rollback").execute(self.storage.pool()).await
-            {
-                tracing::error!(%rollback_error, "failed to roll back raw replay range");
-            }
-            return Err(error.into());
-        }
-
+        };
         let result = self
             .apply_raw_range_buffered(range_end, raw_logs, block_meta, checkpoint_sources)
             .await;
@@ -57,7 +60,9 @@ impl IngestService {
             Ok(()) => {
                 self.storage.clear_change_buffer()?;
                 self.storage.clear_event_buffer()?;
-                self.storage.clear_entity_cache()?;
+                if clear_entity_cache_on_success {
+                    self.storage.clear_entity_cache()?;
+                }
                 let started = Instant::now();
                 sqlx::query("commit").execute(self.storage.pool()).await?;
                 tracing::debug!(

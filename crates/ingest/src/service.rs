@@ -7,7 +7,10 @@ use alloy::providers::{Provider, ProviderBuilder};
 use config::AppConfig;
 use storage::Storage;
 
-use crate::{archive::available_bounds, sources::first_source_start_block};
+use crate::{
+    archive::available_bounds,
+    sources::{first_source_start_block, fixed_sources},
+};
 
 #[derive(Clone)]
 pub struct IngestService {
@@ -20,57 +23,101 @@ impl IngestService {
         Self { config, storage }
     }
 
-    pub async fn run_configured_backfill(
-        &self,
-        from_block: Option<u64>,
-        to_block: Option<u64>,
-    ) -> anyhow::Result<()> {
-        let (from_block, to_block) = self.resolve_backfill_range(from_block, to_block).await?;
-
+    pub async fn run_configured_backfill(&self) -> anyhow::Result<()> {
         if self.config.backfill_source.is_raw() {
-            self.replay_archive_range(from_block, to_block, None).await
+            self.replay_configured_archive(None).await
         } else {
+            let (from_block, to_block) = self.resolve_db_backfill_range().await?;
             self.backfill_range(from_block, to_block).await
         }
     }
 
     pub async fn run_configured_archive(
         &self,
-        from_block: Option<u64>,
-        to_block: Option<u64>,
         archive_dir: Option<std::path::PathBuf>,
     ) -> anyhow::Result<()> {
-        let (from_block, to_block) = self.resolve_backfill_range(from_block, to_block).await?;
+        let (from_block, to_block) = self.resolve_archive_fetch_range(&archive_dir).await?;
         self.archive_range(from_block, to_block, archive_dir).await
     }
 
-    async fn resolve_backfill_range(
-        &self,
-        from_block: Option<u64>,
-        to_block: Option<u64>,
-    ) -> anyhow::Result<(u64, u64)> {
-        let from_block = match from_block {
-            Some(from_block) => from_block,
-            None if self.config.backfill_source.is_raw() => self.raw_archive_bounds()?.0,
-            None => first_source_start_block()?,
-        };
-        let to_block = match to_block {
-            Some(to_block) => to_block,
-            None if self.config.backfill_source.is_raw() => self.raw_archive_bounds()?.1,
-            None => self.latest_rpc_block().await?,
-        };
+    pub(crate) async fn resolve_db_backfill_range(&self) -> anyhow::Result<(u64, u64)> {
+        let from_block = self.next_checkpoint_block().await?;
+        let to_block = self.latest_rpc_block().await?;
         anyhow::ensure!(
             from_block <= to_block,
-            "from block must be less than or equal to to block"
+            "database checkpoints are already at block {} but latest block is {}",
+            from_block.saturating_sub(1),
+            to_block
         );
         Ok((from_block, to_block))
     }
 
-    fn raw_archive_bounds(&self) -> anyhow::Result<(u64, u64)> {
-        let archive_dir = self.config.raw_archive_dir.as_ref().ok_or_else(|| {
-            anyhow::anyhow!("RAW_ARCHIVE_DIR is required when BACKFILL_SOURCE=raw")
-        })?;
-        available_bounds(archive_dir, self.config.chain_id)
+    pub(crate) async fn resolve_archive_replay_range(
+        &self,
+        archive_dir: &std::path::Path,
+    ) -> anyhow::Result<(u64, u64)> {
+        let (_, archived_to) = available_bounds(archive_dir, self.config.chain_id)?;
+        let from_block = self.next_checkpoint_block().await?;
+        anyhow::ensure!(
+            from_block <= archived_to,
+            "database checkpoints are already at block {} but archive only covers through {}",
+            from_block.saturating_sub(1),
+            archived_to
+        );
+        Ok((from_block, archived_to))
+    }
+
+    async fn resolve_archive_fetch_range(
+        &self,
+        archive_dir: &Option<std::path::PathBuf>,
+    ) -> anyhow::Result<(u64, u64)> {
+        let archive_dir = archive_dir
+            .as_ref()
+            .or(self.config.raw_archive_dir.as_ref())
+            .ok_or_else(|| anyhow::anyhow!("RAW_ARCHIVE_DIR or --archive-dir is required"))?;
+        let from_block = match available_bounds(archive_dir, self.config.chain_id) {
+            Ok((_, archived_to)) => archived_to.saturating_add(1),
+            Err(_) => first_source_start_block()?,
+        };
+        let to_block = self.latest_rpc_block().await?;
+        anyhow::ensure!(
+            from_block <= to_block,
+            "archive is already at block {} but latest block is {}",
+            from_block.saturating_sub(1),
+            to_block
+        );
+        Ok((from_block, to_block))
+    }
+
+    async fn next_checkpoint_block(&self) -> anyhow::Result<u64> {
+        let mut next_block = u64::MAX;
+        for source in fixed_sources()? {
+            let source_next = match self
+                .storage
+                .checkpoints()
+                .find_by_source(source.checkpoint_name())
+                .await?
+            {
+                Some(checkpoint) => checkpoint
+                    .block_number
+                    .try_into()
+                    .map(|block: u64| block.saturating_add(1))
+                    .map_err(|_| {
+                        anyhow::anyhow!(
+                            "checkpoint {} has negative block number {}",
+                            checkpoint.source,
+                            checkpoint.block_number
+                        )
+                    })?,
+                None => source.start_block,
+            };
+            next_block = next_block.min(source_next);
+        }
+        if next_block == u64::MAX {
+            first_source_start_block()
+        } else {
+            Ok(next_block)
+        }
     }
 
     async fn latest_rpc_block(&self) -> anyhow::Result<u64> {

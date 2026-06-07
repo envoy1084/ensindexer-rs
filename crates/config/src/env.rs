@@ -15,8 +15,6 @@ pub struct AppConfig {
     pub enable_live_indexing: bool,
     pub backfill_source: BackfillSource,
     pub indexing_source: IndexingSource,
-    pub backfill_from: Option<u64>,
-    pub backfill_to: Option<u64>,
     pub archive_backfills: bool,
     pub raw_archive_dir: Option<PathBuf>,
     pub chain_id: u64,
@@ -45,8 +43,6 @@ impl AppConfig {
             enable_live_indexing: optional("ENABLE_LIVE_INDEXING", false)?,
             backfill_source: optional("BACKFILL_SOURCE", BackfillSource::Rpc)?,
             indexing_source: optional("INDEXING_SOURCE", IndexingSource::HttpRpc)?,
-            backfill_from: optional_value("BACKFILL_FROM")?,
-            backfill_to: optional_value("BACKFILL_TO")?,
             archive_backfills: optional("ARCHIVE_BACKFILLS", false)?,
             raw_archive_dir: optional_path("RAW_ARCHIVE_DIR"),
             chain_id: optional("CHAIN_ID", 1)?,
@@ -106,21 +102,6 @@ where
             .parse()
             .map_err(|err| ConfigError::Invalid(format!("{key}: {err}"))),
         Err(_) => Ok(default),
-    }
-}
-
-fn optional_value<T>(key: &str) -> Result<Option<T>, ConfigError>
-where
-    T: std::str::FromStr,
-    T::Err: std::fmt::Display,
-{
-    match env::var(key) {
-        Ok(value) if value.trim().is_empty() => Ok(None),
-        Ok(value) => value
-            .parse()
-            .map(Some)
-            .map_err(|err| ConfigError::Invalid(format!("{key}: {err}"))),
-        Err(_) => Ok(None),
     }
 }
 
