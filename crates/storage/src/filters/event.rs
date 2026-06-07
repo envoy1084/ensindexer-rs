@@ -1,4 +1,4 @@
-use super::{AccountFilter, DomainFilter, ResolverFilter};
+use super::{AccountFilter, DomainFilter, RegistrationFilter, ResolverFilter};
 
 #[derive(Debug, Clone, Default)]
 pub struct EventFilter {
@@ -11,6 +11,7 @@ pub struct EventFilter {
     pub id_in: Option<Vec<String>>,
     pub id_not_in: Option<Vec<String>>,
     pub parent_id: Option<String>,
+    pub registration_filter: Option<Box<RegistrationFilter>>,
     pub block_number: Option<i32>,
     pub block_number_not: Option<i32>,
     pub block_number_gt: Option<i32>,

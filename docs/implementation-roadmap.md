@@ -470,12 +470,12 @@ Current implementation state:
 - Relationship order fields compile to explicit SQL expressions for mutable entities, concrete events, and event-interface reference queries. Concrete event ordering uses table-specific parent columns such as `domain_id`, `registration_id`, and `resolver_id`; interface references use the union-level `parent_id`.
 - Event-interface reference unions project typed nullable columns for their concrete event-family fields, so interface filters can apply predicates such as `fuses_*`, `expiryDate_*`, `key_*`, `coinType_*`, and `isAuthorized`.
 - Event account-like scalar predicates for `owner_*` and `addr_*` are mapped through API conversion and SQL predicates on concrete event tables and event-interface unions.
-- Event relation predicates are mapped through API conversion and SQL subqueries for domain/account/resolver-backed columns such as `domain_`, `parentDomain_`, `resolver_`, `owner_`, `registrant_`, `newOwner_`, and `addr_`.
+- Event relation predicates are mapped through API conversion and SQL subqueries for domain/account/resolver/registration-backed columns such as `domain_`, `parentDomain_`, `registration_`, `resolver_`, `owner_`, `registrant_`, `newOwner_`, and `addr_`.
 - `DomainFilter` relationship predicates recurse through nested `parent_`, account-backed relations, and resolver scalar predicates, including when the only condition is inside a nested `and`/`or` branch.
 - `RegistrationFilter` and `WrappedDomainFilter` `and`/`or` composition applies nested `domain_`, `registrant_`, and `owner_` relation predicates instead of dropping relation-only branches.
 - `ResolverFilter` `and`/`or` composition applies nested `domain_` and `addr_` relation predicates instead of dropping relation-only branches.
 - Storage query helpers use delimiter-safe `sqlx::QueryBuilder` fragments and have SQL-shape unit tests for scalar and relationship predicates.
-- Historical block snapshots, registration-backed event relationship filters, and `_change_block` filters are still compatibility-expansion work.
+- Historical block snapshots, deeper generated-filter audits, and `_change_block` filters are still compatibility-expansion work.
 
 ## Step 10: Filters, Ordering, and Joins
 
@@ -509,7 +509,7 @@ Tier 2 filters:
 
 - `_not` and comparison operators for every scalar;
 - `_contains_nocase`, `_starts_with_nocase`, `_ends_with_nocase` for all strings;
-- recursive trailing-underscore filters beyond mutable-entity relation composition and registration-backed relationship filters on event entities;
+- recursive trailing-underscore filters beyond current mutable-entity and event relation composition;
 - deeper event-interface relationship filtering over union queries;
 - deeper recursive `and` and `or` semantics across relationship-filter boundaries.
 

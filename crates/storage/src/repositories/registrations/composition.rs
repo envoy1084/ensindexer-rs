@@ -39,7 +39,7 @@ pub(super) fn push_registration_filter_group<'qb>(
     separated.push_unseparated(")");
 }
 
-fn push_registration_subquery_filters<'qb>(
+pub(crate) fn push_registration_subquery_filters<'qb>(
     separated: &mut Separated<'qb, Postgres, &'static str>,
     has_where: &mut bool,
     filter: RegistrationFilter,
@@ -115,7 +115,7 @@ fn push_registration_subquery_filters<'qb>(
     push_registration_filter_group(separated, has_where, " or ", filter.or);
 }
 
-fn registration_filter_has_conditions(filter: &RegistrationFilter) -> bool {
+pub(crate) fn registration_filter_has_conditions(filter: &RegistrationFilter) -> bool {
     filter.id.is_some()
         || filter.id_not.is_some()
         || filter.id_gt.is_some()

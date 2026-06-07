@@ -3,7 +3,7 @@ use sqlx::{Postgres, query_builder::Separated};
 use super::composition::push_registration_filter_group;
 use crate::{filters::RegistrationFilter, query::*};
 
-pub(super) fn push_registration_filters<'qb>(
+pub(crate) fn push_registration_filters<'qb>(
     separated: &mut Separated<'qb, Postgres, &'static str>,
     has_where: &mut bool,
     filter: RegistrationFilter,

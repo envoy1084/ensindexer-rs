@@ -29,6 +29,9 @@ impl EventFilter {
             id_in: self.id_in,
             id_not_in: self.id_not_in,
             parent_id,
+            registration_filter: self
+                .registration_filter
+                .map(|filter| Box::new((*filter).into())),
             block_number: self.block_number,
             block_number_not: self.block_number_not,
             block_number_gt: self.block_number_gt,

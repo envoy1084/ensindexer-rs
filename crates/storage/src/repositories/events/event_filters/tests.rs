@@ -7,6 +7,8 @@ use super::super::specific_filters::push_event_specific_filters;
 use super::*;
 use crate::filters::{AccountFilter, DomainFilter, ResolverFilter};
 
+mod registration_relations;
+
 #[test]
 fn base_event_filters_include_generated_operator_variants() {
     let filter = EventFilter {

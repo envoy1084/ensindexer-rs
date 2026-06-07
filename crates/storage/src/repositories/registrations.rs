@@ -1,11 +1,14 @@
 use bigdecimal::BigDecimal;
 use sqlx::{PgPool, Postgres, QueryBuilder};
 
-use self::filtering::push_registration_filters;
+pub(crate) use self::composition::{
+    push_registration_subquery_filters, registration_filter_has_conditions,
+};
+pub(crate) use self::filtering::push_registration_filters;
 use crate::{error::*, filters::*, models::*, query::registration_order_column};
 
 mod composition;
-mod filtering;
+pub(super) mod filtering;
 
 pub struct RegistrationsRepo<'a> {
     pub(crate) pool: &'a PgPool,

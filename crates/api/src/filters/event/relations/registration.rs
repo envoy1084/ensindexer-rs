@@ -52,5 +52,33 @@ pub(crate) struct RegistrationRelationFilter {
 impl ApplyEventFilter for RegistrationRelationFilter {
     fn apply(self, filter: &mut EventFilter) {
         filter.parent_id = self.registration;
+        filter.registration_filter = self.registration_filter;
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn registration_relation_filter_maps_nested_filter() {
+        let mut filter = EventFilter::default();
+        let mut nested = RegistrationFilter::default();
+        nested.label_name = Some("vitalik".into());
+        RegistrationRelationFilter {
+            registration: Some("registration-id".into()),
+            registration_filter: Some(Box::new(nested)),
+            ..RegistrationRelationFilter::default()
+        }
+        .apply(&mut filter);
+
+        assert_eq!(filter.parent_id.as_deref(), Some("registration-id"));
+        assert_eq!(
+            filter
+                .registration_filter
+                .as_ref()
+                .and_then(|filter| filter.label_name.as_deref()),
+            Some("vitalik")
+        );
     }
 }

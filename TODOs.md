@@ -78,7 +78,7 @@ Last full verification: `cargo run -p cli -- schema-diff --output target/officia
 - [x] `DomainFilter` relationship predicates recurse through nested parent/account/resolver predicates, including relation-only `and`/`or` branches.
 - [x] `RegistrationFilter`, `WrappedDomainFilter`, and `ResolverFilter` composition preserves nested relation-only predicates.
 - [x] Event owner/addr scalar operators are mapped through API conversion and SQL predicates.
-- [x] Event relation predicates are wired for domain/account/resolver-backed columns such as `domain_`, `parentDomain_`, `resolver_`, `owner_`, `registrant_`, `newOwner_`, and `addr_`.
+- [x] Event relation predicates are wired for domain/account/resolver/registration-backed columns such as `domain_`, `parentDomain_`, `registration_`, `resolver_`, `owner_`, `registrant_`, `newOwner_`, and `addr_`.
 - [x] Relationship order fields map to explicit static SQL expressions for entity queries, concrete event queries, and event-interface queries.
 - [x] Query-builder SQL-shape tests cover scalar filters, relationship filters, ordering, and event filter composition.
 
@@ -94,7 +94,6 @@ Last full verification: `cargo run -p cli -- schema-diff --output target/officia
 
 - [ ] Implement historical `block` reads for entity and event roots instead of returning compatibility errors for non-current blocks.
 - [ ] Implement `_change_block` filters for all official filter inputs.
-- [ ] Implement registration-backed event relationship filters where event parent columns point at `registrations`.
 - [ ] Finish deeper recursive trailing-underscore filters beyond the mutable-entity relation composition currently covered.
 - [ ] Audit and complete generated scalar operators for every official scalar field, including less common `_not`, comparison, nocase, starts-with, and ends-with variants.
 - [ ] Audit list-field edge cases against Graph Node behavior.

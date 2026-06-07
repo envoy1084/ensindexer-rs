@@ -1,9 +1,12 @@
 use sqlx::{Postgres, query_builder::Separated};
 
 use crate::{
-    filters::EventFilter,
+    filters::{EventFilter, RegistrationFilter},
     query::{
         push_account_relation_filter, push_domain_relation_filter, push_resolver_relation_filter,
+    },
+    repositories::registrations::{
+        push_registration_subquery_filters, registration_filter_has_conditions,
     },
 };
 
@@ -28,6 +31,14 @@ pub(super) fn push_concrete_parent_relation_filter<'qb>(
                 has_where,
                 parent_column,
                 filter.resolver_filter.clone(),
+            );
+        }
+        "registration_id" => {
+            push_registration_relation_filter(
+                separated,
+                has_where,
+                parent_column,
+                filter.registration_filter.clone(),
             );
         }
         _ => {}
@@ -55,6 +66,14 @@ pub(super) fn push_interface_parent_relation_filter<'qb>(
                 has_where,
                 "parent_id",
                 filter.resolver_filter.clone(),
+            );
+        }
+        "registration_event_refs" => {
+            push_registration_relation_filter(
+                separated,
+                has_where,
+                "parent_id",
+                filter.registration_filter.clone(),
             );
         }
         _ => {}
@@ -174,4 +193,28 @@ pub(super) fn push_event_specific_relation_filters<'qb>(
         }
         _ => {}
     }
+}
+
+fn push_registration_relation_filter<'qb>(
+    separated: &mut Separated<'qb, Postgres, &'static str>,
+    has_where: &mut bool,
+    column: &'static str,
+    filter: Option<Box<RegistrationFilter>>,
+) {
+    let Some(filter) = filter else {
+        return;
+    };
+    if !registration_filter_has_conditions(&filter) {
+        return;
+    }
+
+    separated
+        .push_unseparated(if *has_where { " and " } else { " where " })
+        .push_unseparated(column)
+        .push_unseparated(" in (select id from registrations");
+    *has_where = true;
+
+    let mut sub_has_where = false;
+    push_registration_subquery_filters(separated, &mut sub_has_where, *filter);
+    separated.push_unseparated(")");
 }
