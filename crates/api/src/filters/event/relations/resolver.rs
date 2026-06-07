@@ -52,6 +52,7 @@ pub(crate) struct ResolverRelationFilter {
 impl ApplyEventFilter for ResolverRelationFilter {
     fn apply(self, filter: &mut EventFilter) {
         filter.parent_id = self.resolver;
+        filter.resolver_filter = self.resolver_filter;
     }
 }
 
@@ -104,5 +105,6 @@ pub(crate) struct NewResolverRelationFilter {
 impl ApplyEventFilter for NewResolverRelationFilter {
     fn apply(self, filter: &mut EventFilter) {
         filter.resolver_id = self.resolver;
+        filter.resolver_filter = self.resolver_filter;
     }
 }

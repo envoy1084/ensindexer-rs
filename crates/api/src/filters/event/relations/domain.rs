@@ -52,6 +52,7 @@ pub(crate) struct DomainRelationFilter {
 impl ApplyEventFilter for DomainRelationFilter {
     fn apply(self, filter: &mut EventFilter) {
         filter.parent_id = self.domain;
+        filter.domain_filter = self.domain_filter;
     }
 }
 
@@ -104,5 +105,6 @@ pub(crate) struct ParentDomainRelationFilter {
 impl ApplyEventFilter for ParentDomainRelationFilter {
     fn apply(self, filter: &mut EventFilter) {
         filter.parent_domain_id = self.parent_domain;
+        filter.parent_domain_filter = self.parent_domain_filter;
     }
 }

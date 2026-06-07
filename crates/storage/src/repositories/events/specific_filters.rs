@@ -1,6 +1,7 @@
 use sqlx::Postgres;
 
 use super::interface_filters::push_interface_event_specific_filters;
+use super::relation_filters::push_event_specific_relation_filters;
 use super::text_fields::{
     push_text_event_field, text_field_addr, text_field_hash, text_field_implementer,
     text_field_interface_id, text_field_key, text_field_name, text_field_owner, text_field_target,
@@ -15,6 +16,7 @@ pub(super) fn push_event_specific_filters<'qb>(
     filter: &EventFilter,
 ) {
     if push_interface_event_specific_filters(separated, has_where, table, filter) {
+        push_event_specific_relation_filters(separated, has_where, table, filter);
         return;
     }
 
@@ -182,6 +184,7 @@ pub(super) fn push_event_specific_filters<'qb>(
         }
         _ => {}
     }
+    push_event_specific_relation_filters(separated, has_where, table, filter);
 }
 
 pub(super) fn push_account_event_filter<'qb>(

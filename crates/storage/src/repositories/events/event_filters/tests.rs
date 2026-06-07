@@ -1,7 +1,11 @@
 use sqlx::{Execute, Postgres, QueryBuilder};
 
+use super::super::relation_filters::{
+    push_concrete_parent_relation_filter, push_interface_parent_relation_filter,
+};
 use super::super::specific_filters::push_event_specific_filters;
 use super::*;
+use crate::filters::{AccountFilter, DomainFilter, ResolverFilter};
 
 #[test]
 fn base_event_filters_include_generated_operator_variants() {
@@ -231,6 +235,76 @@ fn account_event_columns_support_operator_variants() {
     assert_eq!(
         built.sql(),
         "select id from transfer_events where owner_id != $1 and owner_id = any($2) and owner_id like $3 and owner_id != $4 and owner_id = any($5) and owner_id like $6 and addr_id > $7 and not (addr_id like $8) and owner_id != $9 and owner_id = any($10) and owner_id like $11 and addr_id > $12 and not (addr_id like $13) and addr > $14 and not (addr like $15) and owner != $16 and owner = any($17) and owner like $18 "
+    );
+}
+
+#[test]
+fn event_relation_filters_apply_parent_and_specific_predicates() {
+    let filter = EventFilter {
+        domain_filter: Some(Box::new(DomainFilter {
+            name: Some("vitalik.eth".into()),
+            ..DomainFilter::default()
+        })),
+        owner_filter: Some(Box::new(AccountFilter {
+            id: Some("0xowner".into()),
+            ..AccountFilter::default()
+        })),
+        ..EventFilter::default()
+    };
+    let mut query = QueryBuilder::<Postgres>::new("select id from transfer_events");
+    {
+        let mut separated = query.separated(" and ");
+        let mut has_where = false;
+        push_event_filters(&mut separated, &mut has_where, "domain_id", &filter);
+        push_concrete_parent_relation_filter(&mut separated, &mut has_where, "domain_id", &filter);
+        push_event_specific_filters(&mut separated, &mut has_where, "transfer_events", &filter);
+        separated.push_unseparated(" ");
+    }
+
+    let built = query.build();
+    assert_eq!(
+        built.sql(),
+        "select id from transfer_events where domain_id in (select id from domains where name = $1) and owner_id in (select id from accounts where id = $2) "
+    );
+}
+
+#[test]
+fn event_interface_relation_filters_apply_parent_and_specific_predicates() {
+    let filter = EventFilter {
+        resolver_filter: Some(Box::new(ResolverFilter {
+            address: Some("0xresolver".into()),
+            ..ResolverFilter::default()
+        })),
+        addr_filter: Some(Box::new(AccountFilter {
+            id: Some("0xaddr".into()),
+            ..AccountFilter::default()
+        })),
+        ..EventFilter::default()
+    };
+    let mut query = QueryBuilder::<Postgres>::new("select id from event_refs");
+    {
+        let mut separated = query.separated(" and ");
+        let mut has_where = false;
+        push_event_filters(&mut separated, &mut has_where, "parent_id", &filter);
+        push_interface_parent_relation_filter(
+            &mut separated,
+            &mut has_where,
+            "resolver_event_refs",
+            &filter,
+        );
+        push_event_specific_filters(
+            &mut separated,
+            &mut has_where,
+            "resolver_event_refs",
+            &filter,
+        );
+        separated.push_unseparated(" ");
+    }
+
+    let built = query.build();
+    assert_eq!(
+        built.sql(),
+        "select id from event_refs where parent_id in (select id from resolvers where address = $1) and addr_id in (select id from accounts where id = $2) "
     );
 }
 

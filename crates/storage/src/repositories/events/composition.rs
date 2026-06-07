@@ -1,6 +1,12 @@
 use sqlx::{Postgres, query_builder::Separated};
 
-use super::{event_filters::push_event_filters, specific_filters::push_event_specific_filters};
+use super::{
+    event_filters::push_event_filters,
+    relation_filters::{
+        push_concrete_parent_relation_filter, push_interface_parent_relation_filter,
+    },
+    specific_filters::push_event_specific_filters,
+};
 use crate::{filters::EventFilter, query::push_where_prefix};
 
 pub(super) fn push_concrete_event_filter_group<'qb>(
@@ -92,12 +98,24 @@ fn push_event_filter_subquery<'qb>(
             parent_column,
         } => {
             push_event_filters(separated, &mut sub_has_where, parent_column, &filter);
+            push_concrete_parent_relation_filter(
+                separated,
+                &mut sub_has_where,
+                parent_column,
+                &filter,
+            );
             push_event_specific_filters(separated, &mut sub_has_where, table, &filter);
         }
         EventFilterSource::Union {
             interface_table, ..
         } => {
             push_event_filters(separated, &mut sub_has_where, "parent_id", &filter);
+            push_interface_parent_relation_filter(
+                separated,
+                &mut sub_has_where,
+                interface_table,
+                &filter,
+            );
             push_event_specific_filters(separated, &mut sub_has_where, interface_table, &filter);
         }
     }

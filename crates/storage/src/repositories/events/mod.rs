@@ -12,6 +12,7 @@ mod insert_resolver;
 mod interface_filters;
 mod refs;
 mod registration;
+mod relation_filters;
 mod resolver;
 mod specific_filters;
 mod text_fields;

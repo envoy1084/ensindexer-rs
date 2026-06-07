@@ -6,6 +6,9 @@ use super::{
     EventsRepo,
     composition::{push_concrete_event_filter_group, push_event_ref_filter_group},
     event_filters::push_event_filters,
+    relation_filters::{
+        push_concrete_parent_relation_filter, push_interface_parent_relation_filter,
+    },
     specific_filters::push_event_specific_filters,
 };
 
@@ -56,6 +59,12 @@ impl EventsRepo<'_> {
         let mut separated = query.separated(" and ");
         let mut has_where = false;
         push_event_filters(&mut separated, &mut has_where, parent_column, &filter);
+        push_concrete_parent_relation_filter(
+            &mut separated,
+            &mut has_where,
+            parent_column,
+            &filter,
+        );
         push_event_specific_filters(&mut separated, &mut has_where, table, &filter);
         push_concrete_event_filter_group(
             &mut separated,
@@ -107,6 +116,12 @@ impl EventsRepo<'_> {
         let mut separated = query.separated(" and ");
         let mut has_where = false;
         push_event_filters(&mut separated, &mut has_where, "parent_id", &filter);
+        push_interface_parent_relation_filter(
+            &mut separated,
+            &mut has_where,
+            source.interface_table,
+            &filter,
+        );
         push_event_specific_filters(
             &mut separated,
             &mut has_where,

@@ -58,9 +58,21 @@ impl EventFilter {
             owner_id_contains: self.owner_id_contains,
             owner_id_not_contains: self.owner_id_not_contains,
             parent_domain_id: self.parent_domain_id,
+            parent_domain_filter: self
+                .parent_domain_filter
+                .map(|filter| Box::new((*filter).into())),
             resolver_id: self.resolver_id,
+            resolver_filter: self
+                .resolver_filter
+                .map(|filter| Box::new((*filter).into())),
             registrant_id: self.registrant_id,
+            registrant_filter: self
+                .registrant_filter
+                .map(|filter| Box::new((*filter).into())),
             new_owner_id: self.new_owner_id,
+            new_owner_filter: self
+                .new_owner_filter
+                .map(|filter| Box::new((*filter).into())),
             addr_id: self.addr_id,
             addr_id_not: self.addr_id_not,
             addr_id_gt: self.addr_id_gt,
@@ -71,6 +83,9 @@ impl EventFilter {
             addr_id_not_in: self.addr_id_not_in,
             addr_id_contains: self.addr_id_contains,
             addr_id_not_contains: self.addr_id_not_contains,
+            addr_filter: self.addr_filter.map(|filter| Box::new((*filter).into())),
+            domain_filter: self.domain_filter.map(|filter| Box::new((*filter).into())),
+            owner_filter: self.owner_filter.map(|filter| Box::new((*filter).into())),
             name: self.name,
             name_not: self.name_not,
             name_gt: self.name_gt,

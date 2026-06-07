@@ -61,6 +61,7 @@ impl ApplyEventFilter for OwnerRelationFilter {
         filter.owner_id_not_in = self.owner_not_in;
         filter.owner_id_contains = self.owner_contains;
         filter.owner_id_not_contains = self.owner_not_contains;
+        filter.owner_filter = self.owner_filter;
     }
 }
 
@@ -113,6 +114,7 @@ pub(crate) struct RegistrantRelationFilter {
 impl ApplyEventFilter for RegistrantRelationFilter {
     fn apply(self, filter: &mut EventFilter) {
         filter.registrant_id = self.registrant;
+        filter.registrant_filter = self.registrant_filter;
     }
 }
 
@@ -165,6 +167,7 @@ pub(crate) struct NewOwnerRelationFilter {
 impl ApplyEventFilter for NewOwnerRelationFilter {
     fn apply(self, filter: &mut EventFilter) {
         filter.new_owner_id = self.new_owner;
+        filter.new_owner_filter = self.new_owner_filter;
     }
 }
 
@@ -226,6 +229,7 @@ impl ApplyEventFilter for AddrAccountRelationFilter {
         filter.addr_id_not_in = self.addr_not_in;
         filter.addr_id_contains = self.addr_contains;
         filter.addr_id_not_contains = self.addr_not_contains;
+        filter.addr_filter = self.addr_filter;
     }
 }
 
@@ -240,12 +244,20 @@ mod tests {
             owner_not: Some("0xold".into()),
             owner_in: Some(vec!["0xone".into(), "0xtwo".into()]),
             owner_contains: Some("abcd".into()),
+            owner_filter: Some(Box::new(AccountFilter {
+                id: Some("0xowner".into()),
+                ..AccountFilter::default()
+            })),
             ..OwnerRelationFilter::default()
         }
         .apply(&mut filter);
         AddrAccountRelationFilter {
             addr_gt: Some("0x1000".into()),
             addr_not_contains: Some("ffff".into()),
+            addr_filter: Some(Box::new(AccountFilter {
+                id: Some("0xaddr".into()),
+                ..AccountFilter::default()
+            })),
             ..AddrAccountRelationFilter::default()
         }
         .apply(&mut filter);
@@ -258,5 +270,19 @@ mod tests {
         assert_eq!(filter.owner_id_contains.as_deref(), Some("abcd"));
         assert_eq!(filter.addr_id_gt.as_deref(), Some("0x1000"));
         assert_eq!(filter.addr_id_not_contains.as_deref(), Some("ffff"));
+        assert_eq!(
+            filter
+                .owner_filter
+                .as_ref()
+                .and_then(|filter| filter.id.as_deref()),
+            Some("0xowner")
+        );
+        assert_eq!(
+            filter
+                .addr_filter
+                .as_ref()
+                .and_then(|filter| filter.id.as_deref()),
+            Some("0xaddr")
+        );
     }
 }
