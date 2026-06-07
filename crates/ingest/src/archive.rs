@@ -3,8 +3,13 @@ mod manifest;
 mod model;
 mod resolvers;
 
-use std::path::{Path, PathBuf};
+use std::{
+    io::Write,
+    path::{Path, PathBuf},
+    time::Instant,
+};
 
+use anyhow::Context;
 pub use coverage::{ArchiveGap, ArchiveStatus, inspect_archive};
 pub use manifest::ArchiveManifestRange;
 pub(crate) use model::ArchivedRange;
@@ -15,14 +20,26 @@ use self::manifest::{load_manifest, upsert_manifest_range, verify_manifest_range
 
 pub(crate) fn write_range(dir: &Path, range: &ArchivedRange) -> anyhow::Result<PathBuf> {
     let ranges_dir = dir.join("ranges");
-    std::fs::create_dir_all(&ranges_dir)?;
+    std::fs::create_dir_all(&ranges_dir).with_context(|| {
+        format!(
+            "failed to create archive ranges dir {}",
+            ranges_dir.display()
+        )
+    })?;
 
     let path = range_path(dir, range.from_block, range.to_block);
     let tmp_path = path.with_extension("bin.tmp");
     let bytes = encode_range_binary(range)?;
     let checksum = manifest::sha256_hex(&bytes);
-    std::fs::write(&tmp_path, bytes)?;
-    std::fs::rename(&tmp_path, &path)?;
+    std::fs::write(&tmp_path, bytes)
+        .with_context(|| format!("failed to write archive temp file {}", tmp_path.display()))?;
+    std::fs::rename(&tmp_path, &path).with_context(|| {
+        format!(
+            "failed to move archive temp file {} to {}",
+            tmp_path.display(),
+            path.display()
+        )
+    })?;
     upsert_manifest_range(dir, range, &path, &checksum)?;
     Ok(path)
 }
@@ -61,7 +78,9 @@ pub(crate) fn read_range_entry(
     entry: &ArchiveManifestRange,
 ) -> anyhow::Result<ArchivedRange> {
     verify_manifest_range_checksum(dir, expected_chain_id, entry)?;
-    let bytes = std::fs::read(dir.join(&entry.file))?;
+    let path = dir.join(&entry.file);
+    let bytes = std::fs::read(&path)
+        .with_context(|| format!("failed to read archive range {}", path.display()))?;
     let range = decode_range_entry(entry, &bytes)?;
     range.validate(expected_chain_id)?;
     Ok(range)
@@ -76,15 +95,95 @@ pub fn convert_json_archive_to_binary(dir: &Path, expected_chain_id: u64) -> any
         expected_chain_id
     );
 
-    let mut converted = 0;
-    for entry in manifest
+    let binary_ranges = manifest
+        .ranges
+        .iter()
+        .filter(|entry| entry.file.ends_with(".bin"))
+        .map(|entry| (entry.from_block, entry.to_block))
+        .collect::<std::collections::BTreeSet<_>>();
+    let entries = manifest
         .ranges
         .iter()
         .filter(|entry| entry.file.ends_with(".json"))
-    {
-        let range = read_range_entry(dir, expected_chain_id, entry)?;
-        write_range(dir, &range)?;
-        converted += 1;
+        .filter(|entry| !binary_ranges.contains(&(entry.from_block, entry.to_block)))
+        .cloned()
+        .collect::<Vec<_>>();
+
+    let total = entries.len();
+    let mut converted = 0;
+    for (index, entry) in entries.into_iter().enumerate() {
+        let started = Instant::now();
+        tracing::info!(
+            archive_file = %entry.file,
+            from_block = entry.from_block,
+            to_block = entry.to_block,
+            bytes = entry.bytes,
+            logs = entry.logs,
+            range_index = index + 1,
+            total_ranges = total,
+            "converting archive range to binary"
+        );
+        println!(
+            "converting archive range {}/{} {} {}..{} logs={} bytes={}",
+            index + 1,
+            total,
+            entry.file,
+            entry.from_block,
+            entry.to_block,
+            entry.logs,
+            entry.bytes
+        );
+        let _ = std::io::stdout().flush();
+        let result = (|| {
+            let range = read_range_entry(dir, expected_chain_id, &entry)
+                .with_context(|| format!("failed to read archive range {}", entry.file))?;
+            write_range(dir, &range)
+                .with_context(|| format!("failed to convert archive range {}", entry.file))?;
+            anyhow::Ok(())
+        })();
+        match result {
+            Ok(()) => {
+                converted += 1;
+                tracing::info!(
+                    archive_file = %entry.file,
+                    from_block = entry.from_block,
+                    to_block = entry.to_block,
+                    range_index = index + 1,
+                    total_ranges = total,
+                    elapsed_ms = started.elapsed().as_millis(),
+                    "converted archive range to binary"
+                );
+                println!(
+                    "converted archive range {}/{} {} elapsed_ms={}",
+                    index + 1,
+                    total,
+                    entry.file,
+                    started.elapsed().as_millis()
+                );
+                let _ = std::io::stdout().flush();
+            }
+            Err(error) => {
+                tracing::error!(
+                    archive_file = %entry.file,
+                    from_block = entry.from_block,
+                    to_block = entry.to_block,
+                    range_index = index + 1,
+                    total_ranges = total,
+                    elapsed_ms = started.elapsed().as_millis(),
+                    %error,
+                    "failed to convert archive range to binary"
+                );
+                eprintln!(
+                    "failed archive range {}/{} {} elapsed_ms={} error={:#}",
+                    index + 1,
+                    total,
+                    entry.file,
+                    started.elapsed().as_millis(),
+                    error
+                );
+                return Err(error);
+            }
+        }
     }
     Ok(converted)
 }
@@ -149,10 +248,7 @@ pub(crate) fn verify_manifest_range(
 }
 
 pub(crate) fn encode_range_binary(range: &ArchivedRange) -> anyhow::Result<Vec<u8>> {
-    Ok(bincode::serde::encode_to_vec(
-        range,
-        bincode::config::standard(),
-    )?)
+    Ok(rmp_serde::to_vec_named(range)?)
 }
 
 pub(crate) fn decode_range_entry(
@@ -160,14 +256,7 @@ pub(crate) fn decode_range_entry(
     bytes: &[u8],
 ) -> anyhow::Result<ArchivedRange> {
     if entry.file.ends_with(".bin") {
-        let (range, consumed): (ArchivedRange, usize) =
-            bincode::serde::decode_from_slice(bytes, bincode::config::standard())?;
-        anyhow::ensure!(
-            consumed == bytes.len(),
-            "binary archive range {} had trailing bytes",
-            entry.file
-        );
-        Ok(range)
+        Ok(rmp_serde::from_slice(bytes)?)
     } else {
         Ok(serde_json::from_slice(bytes)?)
     }
